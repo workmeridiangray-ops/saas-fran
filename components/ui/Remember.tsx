@@ -26,7 +26,7 @@ export function Remember() {
     // The failed page's form may not be in the DOM yet when the URL changes, and React resets a form once its
     // action settles. So keep looking for a short while and apply the saved values whenever a form shows up.
     const done = new Set<string>(); let ticks = 0;
-    let typed = false; const stop = (ev: Event) => { if (ev.isTrusted) typed = true; }; document.addEventListener("input", stop, true);
+    let typed = false; const stop = () => { typed = true; }; document.addEventListener("input", stop, true); document.addEventListener("change", stop, true);
     const apply = () => {
       if (typed) return;
       try {
@@ -41,7 +41,7 @@ export function Remember() {
     };
     const timer = setInterval(() => { apply(); if (++ticks > 30) { clearInterval(timer); done.forEach((k) => { try { sessionStorage.removeItem(k); } catch { /* ignore */ } }); } }, 100);
     apply();
-    return () => { clearInterval(timer); document.removeEventListener("input", stop, true); };
+    return () => { clearInterval(timer); document.removeEventListener("input", stop, true); document.removeEventListener("change", stop, true); };
   }, [path, search]);
 
   useEffect(() => {
@@ -52,6 +52,8 @@ export function Remember() {
       submitting = true; const f = ev.target as HTMLFormElement; if (!isWorkForm(f)) return;
       try { const data: Record<string, string | string[]> = {};
         for (const e of fields(f)) { if (e instanceof HTMLInputElement && (e.type === "checkbox" || e.type === "radio")) { if (e.checked) { const cur = data[e.name]; data[e.name] = cur === undefined ? e.value : [...(Array.isArray(cur) ? cur : [cur]), e.value]; } } else data[e.name] = e.value; }
+        // Only the form being submitted is remembered; older entries would be stale.
+        for (let k = sessionStorage.length - 1; k >= 0; k--) { const n = sessionStorage.key(k); if (n?.startsWith(KEY)) sessionStorage.removeItem(n); }
         sessionStorage.setItem(sig(f), JSON.stringify(data)); } catch { /* ignore */ }
     };
     const onLeave = (ev: BeforeUnloadEvent) => { if (dirty && !submitting) { ev.preventDefault(); ev.returnValue = ""; } };
