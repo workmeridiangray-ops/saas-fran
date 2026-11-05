@@ -2,12 +2,12 @@
 import { asUser } from "@/lib/db";
 import { requireCtx } from "@/lib/ctx";
 import { fail, run, str, uuid } from "@/lib/flash";
-import { REPORTS } from "@/lib/reports";
+import { describeKind } from "@/lib/reports";
 
 export async function addSchedule(f: FormData) {
   const ctx = await requireCtx(); const kind = str(f, "kind"), freq = str(f, "frequency");
   return run("/reports", "/reports", "Schedule saved. It runs as you, so it only ever includes what you can see.", async () => {
-    const def = REPORTS[kind]; if (!def) return fail("Choose a report.");
+    const def = await describeKind(ctx.user.id, ctx.companyId, kind); if (!def) return fail("Choose a report.");
     if (!ctx.has(def.action as "export", def.resource as "reports")) fail("You can't export that report, so you can't schedule it.");
     if (!["daily", "weekly", "monthly"].includes(freq)) fail("Choose how often.");
     const recipients = str(f, "recipients").split(/[,\s;]+/).map((x) => x.toLowerCase()).filter(Boolean);

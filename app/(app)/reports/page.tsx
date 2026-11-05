@@ -9,7 +9,7 @@ import { DATASETS, isDataset } from "@/lib/rules/report-builder";
 import { Field, FormCard, Select } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/forms";
 import { Flash } from "@/components/ui/flash";
-import { REPORTS, REPORT_LABEL } from "@/lib/reports";
+import { REPORTS, REPORT_LABEL, isCustomKind } from "@/lib/reports";
 import { fmtDateTime, titleCase } from "@/lib/format";
 
 export const metadata = { title: "Reports & exports" };
@@ -33,7 +33,9 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
     schedules: await db.q<{ id: string; kind: string; frequency: string; weekday: number | null; recipients: string[]; active: boolean; last_run_at: string | null }>("select id, kind, frequency, weekday, recipients, active, last_run_at from report_schedules where company_id = $1 order by created_at", [ctx.companyId]),
     runs: await db.q<{ id: string; kind: string; trigger: string; row_count: number; status: string; detail: string | null; at: string; who: string | null }>("select r.id, r.kind, r.trigger, r.row_count, r.status, r.detail, r.at, coalesce(nullif(p.display_name,''), p.email) who from report_runs r left join profiles p on p.id = r.run_by where r.company_id = $1 order by r.id desc limit 25", [ctx.companyId]),
   }));
-  const canSchedule = ctx.has("create", "reports"); const myKinds = Object.entries(REPORTS).filter(([, d]) => ctx.has(d.action as "export", d.resource as "reports")).map(([k]) => ({ value: k, label: REPORT_LABEL[k] ?? k }));
+  const canSchedule = ctx.has("create", "reports"); const myKinds = [...Object.entries(REPORTS).filter(([, d]) => ctx.has(d.action as "export", d.resource as "reports")).map(([k]) => ({ value: k, label: REPORT_LABEL[k] ?? k })),
+    ...mine.filter((m) => isDataset(m.dataset) && ctx.has("export", DATASETS[m.dataset].resource)).map((m) => ({ value: `custom:${m.id}`, label: `${m.name} (custom)` }))];
+  const kindLabel = (k: string) => myKinds.find((o) => o.value === k)?.label ?? REPORT_LABEL[k] ?? (k.startsWith("custom:") ? (isCustomKind(k) ? "Custom report (removed)" : `${k.slice(7)} (custom)`) : k);
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const canExport = (res: string) => ctx.has("export", res as never);
   return (
@@ -55,7 +57,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
         {ctx.has("create", "reports") && <p className="mt-1"><Link href="/reports/builder" className="text-sm font-medium text-brand">Build a custom report</Link></p>}</Panel></div>
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         <Panel title="Scheduled reports">{hist.schedules.length === 0 ? <p className="text-sm text-muted">Nothing scheduled.</p> : (
-          <ul className="divide-y divide-line">{hist.schedules.map((x) => <li key={x.id} className="flex items-start justify-between gap-2 py-1.5 text-sm"><span><span className="font-medium">{REPORT_LABEL[x.kind] ?? x.kind}</span> · {titleCase(x.frequency)}{x.frequency === "weekly" && x.weekday !== null ? ` on ${days[x.weekday]}` : ""}<span className="block text-xs text-muted">to {x.recipients.join(", ")} · {x.last_run_at ? `last sent ${fmtDateTime(x.last_run_at, ctx.company.timezone)}` : "not sent yet"}{!x.active ? " · switched off" : ""}</span></span>
+          <ul className="divide-y divide-line">{hist.schedules.map((x) => <li key={x.id} className="flex items-start justify-between gap-2 py-1.5 text-sm"><span><span className="font-medium">{kindLabel(x.kind)}</span> · {titleCase(x.frequency)}{x.frequency === "weekly" && x.weekday !== null ? ` on ${days[x.weekday]}` : ""}<span className="block text-xs text-muted">to {x.recipients.join(", ")} · {x.last_run_at ? `last sent ${fmtDateTime(x.last_run_at, ctx.company.timezone)}` : "not sent yet"}{!x.active ? " · switched off" : ""}</span></span>
             {canSchedule && <form action={removeSchedule}><input type="hidden" name="id" value={x.id} /><SubmitButton variant="secondary" pending="…">Remove</SubmitButton></form>}</li>)}</ul>)}</Panel>
         {canSchedule && myKinds.length > 0 && <FormCard title="Email a report on a schedule"><form action={addSchedule} className="space-y-2"><Select label="Report" name="kind" options={myKinds} /><div className="grid grid-cols-2 gap-2"><Select label="How often" name="frequency" options={[{ value: "daily", label: "Every day" }, { value: "weekly", label: "Every week" }, { value: "monthly", label: "1st of the month" }]} /><Select label="Weekly on" name="weekday" defaultValue="1" options={days.map((d, i) => ({ value: String(i), label: d }))} /></div>
           <Field label="Send to (emails, comma separated)" name="recipients" required /><SubmitButton pending="Saving…">Schedule</SubmitButton></form></FormCard>}
@@ -63,7 +65,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
       <h2 className="mb-1 mt-4 text-sm font-semibold text-muted">Export history</h2>
       {hist.runs.length === 0 ? <p className="text-sm text-muted">No exports yet.</p> : (
         <TableWrap label="Export history"><thead><tr><Th>When</Th><Th>Report</Th><Th>How</Th><Th>By</Th><Th num>Rows</Th><Th>Result</Th></tr></thead>
-          <tbody>{hist.runs.map((r) => <tr key={r.id}><Td>{fmtDateTime(r.at, ctx.company.timezone)}</Td><Td>{REPORT_LABEL[r.kind] ?? r.kind}</Td><Td>{r.trigger === "manual" ? "Downloaded" : "Scheduled"}</Td><Td>{r.who ?? "—"}</Td><Td num>{r.row_count}</Td><Td><Status tone={r.status === "ok" ? "ok" : "danger"}>{r.status === "ok" ? "OK" : "Failed"}</Status>{r.detail && <span className="block text-xs text-muted">{r.detail}</span>}</Td></tr>)}</tbody></TableWrap>)}
+          <tbody>{hist.runs.map((r) => <tr key={r.id}><Td>{fmtDateTime(r.at, ctx.company.timezone)}</Td><Td>{kindLabel(r.kind)}</Td><Td>{r.trigger === "manual" ? "Downloaded" : "Scheduled"}</Td><Td>{r.who ?? "—"}</Td><Td num>{r.row_count}</Td><Td><Status tone={r.status === "ok" ? "ok" : "danger"}>{r.status === "ok" ? "OK" : "Failed"}</Status>{r.detail && <span className="block text-xs text-muted">{r.detail}</span>}</Td></tr>)}</tbody></TableWrap>)}
     </>
   );
 }

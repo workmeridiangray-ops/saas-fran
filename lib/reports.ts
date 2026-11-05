@@ -1,5 +1,7 @@
 import { asUser } from "@/lib/db";
 import { toCsv } from "@/lib/csv";
+import { DATASETS, isDataset } from "@/lib/rules/report-builder";
+import { runSpecCsv, toSpec, type SavedReport } from "@/lib/reports-custom";
 
 export interface ReportDef { resource: string; action: string; headers: string[]; sql: string; label?: string }
 /** CSV reports. Each runs as the person it is for, so row-level security limits what they get. */
@@ -17,8 +19,20 @@ export const REPORTS: Record<string, ReportDef> = {
 
 export const REPORT_LABEL: Record<string, string> = { branches: "Branches", tasks: "Tasks", inspections: "Inspections", findings: "Findings", purchasing: "Requisitions", tickets: "Tickets", training: "Training completion", statements: "Royalty statements", audit: "Audit log" };
 
+/** Scheduled and downloadable kinds are either a built-in report ("tasks") or a saved custom one ("custom:<uuid>"). */
+export const CUSTOM_PREFIX = "custom:";
+export const isCustomKind = (k: string) => k.startsWith(CUSTOM_PREFIX) && /^[0-9a-f-]{36}$/i.test(k.slice(CUSTOM_PREFIX.length));
+const loadCustom = (userId: string, companyId: string, kind: string) => asUser(userId, (db) => db.one<SavedReport>("select id, name, dataset, columns, filters, sort, descending from custom_reports where id = $1 and company_id = $2", [kind.slice(CUSTOM_PREFIX.length), companyId]));
+
+/** What a kind is called and what permission it needs; null if it no longer exists. */
+export async function describeKind(userId: string, companyId: string, kind: string): Promise<{ resource: string; action: string; label: string } | null> {
+  if (isCustomKind(kind)) { const r = await loadCustom(userId, companyId, kind); return r && isDataset(r.dataset) ? { resource: DATASETS[r.dataset].resource, action: "export", label: r.name } : null; }
+  const d = REPORTS[kind]; return d ? { resource: d.resource, action: d.action, label: REPORT_LABEL[kind] ?? kind } : null;
+}
+
 /** Run one report as a user. Returns null if the kind is unknown. */
 export async function runReport(userId: string, companyId: string, kind: string): Promise<{ csv: string; rows: number } | null> {
+  if (isCustomKind(kind)) { const r = await loadCustom(userId, companyId, kind); return r ? runSpecCsv(userId, companyId, toSpec(r)) : null; }
   const r = REPORTS[kind]; if (!r) return null;
   const rows = await asUser(userId, (db) => db.qa(r.sql, [companyId]));
   return { csv: toCsv(r.headers, rows), rows: rows.length };

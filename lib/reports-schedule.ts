@@ -1,5 +1,5 @@
 import { asService, asUser } from "@/lib/db";
-import { REPORTS, REPORT_LABEL, runReport } from "@/lib/reports";
+import { describeKind, runReport } from "@/lib/reports";
 import { sendMail } from "@/lib/mail";
 
 /** A schedule is due if it hasn't run in its current day / week-day / month. Pure so it can be tested. */
@@ -21,12 +21,12 @@ export async function runDueReports(now = new Date()): Promise<{ sent: number; f
     if (!isDue(s, now)) continue;
     const log = (status: "ok" | "failed", rows: number, detail?: string) => asService((db) => db.q("insert into report_runs(company_id, schedule_id, kind, trigger, run_by, row_count, status, detail) values ($1,$2,$3,'scheduled',$4,$5,$6,$7)", [s.company_id, s.id, s.kind, s.created_by, rows, status, detail ?? null]));
     try {
-      const def = REPORTS[s.kind]; if (!def) throw new Error("This report no longer exists.");
+      const def = await describeKind(s.created_by, s.company_id, s.kind); if (!def) throw new Error("This report no longer exists.");
       // Permission is checked every run, as the creator: if they lost access, the schedule stops instead of leaking data.
       const allowed = await asUser(s.created_by, async (db) => (await db.one<{ ok: boolean }>("select app.has_perm($1, $2, $3) ok", [s.company_id, def.resource, def.action]))!.ok);
       if (!allowed) { await asService((db) => db.q("update report_schedules set active = false where id = $1", [s.id])); throw new Error("The person who scheduled this no longer has permission, so it was switched off."); }
       const r = (await runReport(s.created_by, s.company_id, s.kind))!;
-      for (const to of s.recipients) await sendMail(to, `${REPORT_LABEL[s.kind] ?? s.kind} report: ${s.company}`, `Your scheduled ${REPORT_LABEL[s.kind] ?? s.kind} report is attached (${r.rows} rows).`, [{ filename: `${s.kind}-${now.toISOString().slice(0, 10)}.csv`, content: r.csv }]);
+      for (const to of s.recipients) await sendMail(to, `${def.label} report: ${s.company}`, `Your scheduled ${def.label} report is attached (${r.rows} rows).`, [{ filename: `${def.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "report"}-${now.toISOString().slice(0, 10)}.csv`, content: r.csv }]);
       await log("ok", r.rows); out.sent++;
     } catch (e) { await log("failed", 0, (e as Error).message.slice(0, 300)); out.failed++; }
     await asService((db) => db.q("update report_schedules set last_run_at = $2 where id = $1", [s.id, now]));
