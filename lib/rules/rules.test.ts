@@ -171,3 +171,121 @@ describe("branch closure", () => {
     ]);
   });
 });
+
+import { scoreInspection, severityOf } from "./inspection";
+import { attemptsLeft, expiryFrom, gradeQuiz, isExpired } from "./training";
+import { missingRequired } from "./checklist";
+import { lineTotalMinor, requisitionTotal } from "./purchase";
+import { toCsv } from "../csv";
+import { base32Decode, totp, verifyTotp, newSecret } from "../auth/totp";
+import { hashPassword, passwordProblem, verifyPassword } from "../auth/password";
+
+describe("inspection scoring", () => {
+  const items = [
+    { id: "a", text: "Clean", weight: 2, critical: false },
+    { id: "b", text: "Fire safety", weight: 3, critical: true },
+    { id: "c", text: "Uniform", weight: 1, critical: false },
+  ];
+  it("weights pass/fail and ignores N/A", () => {
+    expect(scoreInspection(items, { a: "pass", b: "pass", c: "fail" }).score).toBe(83.33);
+    expect(scoreInspection(items, { a: "pass", b: "pass", c: "na" }).score).toBe(100);
+  });
+  it("a critical failure caps the score at 70", () => {
+    const r = scoreInspection(items, { a: "pass", b: "fail", c: "pass" });
+    expect(r.criticalFailed).toBe(true);
+    expect(r.score).toBe(50); // raw 50 is already below the cap
+    expect(scoreInspection([{ ...items[1]!, weight: 1 }, { id: "z", text: "x", weight: 9, critical: false }], { b: "fail", z: "pass" }).score).toBe(70);
+  });
+  it("reports unanswered items and severity", () => {
+    expect(scoreInspection(items, { a: "pass" }).unanswered).toEqual(["b", "c"]);
+    expect(severityOf(items[1]!)).toBe("critical");
+    expect(severityOf({ id: "q", text: "", weight: 3, critical: false })).toBe("major");
+  });
+});
+
+describe("training", () => {
+  const qs = [{ q: "1", options: ["a", "b"], answer: 0 }, { q: "2", options: ["a", "b"], answer: 1 }];
+  it("grades against the pass mark", () => {
+    expect(gradeQuiz(qs, [0, 1], 80)).toMatchObject({ score: 100, passed: true });
+    expect(gradeQuiz(qs, [0, 0], 80)).toMatchObject({ score: 50, passed: false });
+    expect(gradeQuiz(qs, [0], 50).passed).toBe(true);
+  });
+  it("limits attempts and computes expiry", () => {
+    expect(attemptsLeft(3, 3)).toBe(0);
+    const d = expiryFrom(new Date("2026-01-01T00:00:00Z"), 365)!;
+    expect(d.toISOString().slice(0, 10)).toBe("2027-01-01");
+    expect(isExpired(d, new Date("2027-01-02"))).toBe(true);
+    expect(expiryFrom(new Date(), null)).toBeNull();
+  });
+});
+
+describe("checklist and purchase maths", () => {
+  it("required items must be done or N/A", () => {
+    const items = [{ id: "1", text: "a", required: true }, { id: "2", text: "b", required: false }, { id: "3", text: "c", required: true }];
+    expect(missingRequired(items, { "1": "done" }).map((i) => i.id)).toEqual(["3"]);
+    expect(missingRequired(items, { "1": "done", "3": "na" })).toEqual([]);
+  });
+  it("line totals are exact integers", () => {
+    expect(lineTotalMinor(10, 4000)).toBe(40_000);
+    expect(lineTotalMinor(0.333, 1000)).toBe(333);
+    expect(lineTotalMinor(3, 1999, 800)).toBe(6477); // 5997 + 8% = 6476.76 -> 6477
+    expect(requisitionTotal([{ qty: 2, unitPriceMinor: 500 }, { qty: 1, unitPriceMinor: 250, taxBp: 1000 }])).toBe(1275);
+  });
+});
+
+describe("csv", () => {
+  it("quotes and defuses spreadsheet formulas", () => {
+    expect(toCsv(["a", "b"], [["x,y", '"q"'], ["=SUM(A1)", null]])).toBe('a,b\r\n"x,y","""q"""\r\n\'=SUM(A1),\r\n');
+  });
+});
+
+describe("auth primitives", () => {
+  it("TOTP matches the RFC 6238 SHA-1 vector", () => {
+    const secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"; // ASCII "12345678901234567890"
+    expect(base32Decode(secret).toString()).toBe("12345678901234567890");
+    expect(totp(secret, 59_000, 8)).toBe("94287082");
+    expect(totp(secret, 1_111_111_109_000, 8)).toBe("07081804");
+  });
+  it("accepts one step of drift, rejects the rest", () => {
+    const s = newSecret(); const now = 1_700_000_000_000;
+    expect(verifyTotp(s, totp(s, now), now)).toBe(true);
+    expect(verifyTotp(s, totp(s, now - 30_000), now)).toBe(true);
+    expect(verifyTotp(s, totp(s, now - 120_000), now)).toBe(false);
+    expect(verifyTotp(s, "12345", now)).toBe(false);
+  });
+  it("hashes passwords with a per-user salt and verifies them", async () => {
+    const h1 = await hashPassword("correct horse battery"); const h2 = await hashPassword("correct horse battery");
+    expect(h1).not.toBe(h2);
+    expect(await verifyPassword("correct horse battery", h1)).toBe(true);
+    expect(await verifyPassword("wrong", h1)).toBe(false);
+  });
+  it("rejects weak passwords", () => {
+    expect(passwordProblem("short")).not.toBeNull();
+    expect(passwordProblem("aaaaaaaaaaaa")).not.toBeNull();
+    expect(passwordProblem("maria.santos-2026", "maria.santos@x.com")).not.toBeNull();
+    expect(passwordProblem("a long unusual passphrase", "x@y.com")).toBeNull();
+  });
+});
+
+import { canMoveBranch } from "./branch-lifecycle";
+describe("branch lifecycle", () => {
+  it("allows the normal path and cancelling a closure", () => {
+    expect(canMoveBranch("planned", "opening")).toBe(true);
+    expect(canMoveBranch("active", "suspended")).toBe(true);
+    expect(canMoveBranch("closing", "active")).toBe(true);
+  });
+  it("closed is final and you cannot skip closure", () => {
+    expect(canMoveBranch("closed", "active")).toBe(false);
+    expect(canMoveBranch("active", "closed")).toBe(false);
+    expect(canMoveBranch("suspended", "opening")).toBe(false);
+  });
+});
+
+import { zonedToIso } from "../format";
+describe("branch-timezone deadlines", () => {
+  it("interprets a local time in the branch's zone", () => {
+    expect(zonedToIso("2026-11-05T17:00", "America/New_York")).toBe("2026-11-05T22:00:00.000Z"); // EST, UTC-5
+    expect(zonedToIso("2026-07-05T17:00", "America/New_York")).toBe("2026-07-05T21:00:00.000Z"); // EDT, UTC-4
+    expect(zonedToIso("2026-11-05T09:00", "Asia/Kolkata")).toBe("2026-11-05T03:30:00.000Z");
+  });
+});
