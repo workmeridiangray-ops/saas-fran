@@ -459,3 +459,13 @@ describe("custom report builder", () => {
     expect(() => buildQuery({ ...base, columns: ["cf:cost_code"] })).toThrow();
   });
 });
+
+import { NAV } from "../nav";
+import { ES } from "../i18n-es";
+describe("Spanish coverage", () => {
+  it("translates every menu group and item", () => {
+    const missing = NAV.flatMap((g) => [g.label, ...g.items.map((i) => i.label)]).filter((l) => !ES[l]);
+    expect(missing).toEqual([]);
+  });
+  it("never maps a string to an empty translation", () => { expect(Object.values(ES).filter((v) => !v.trim())).toEqual([]); });
+});

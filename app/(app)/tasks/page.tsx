@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n";
 import Link from "next/link";
 import { asUser } from "@/lib/db";
 import { requireCtx } from "@/lib/ctx";
@@ -11,7 +12,7 @@ export const metadata = { title: "Tasks" };
 const TONE: Record<string, Tone> = { open: "info", in_progress: "info", blocked: "warn", done: "ok", cancelled: "neutral" };
 
 export default async function Tasks({ searchParams }: { searchParams: Promise<{ filter?: string; status?: string; q?: string; ok?: string; err?: string }> }) {
-  const ctx = await requireCtx(); const denied = guard(ctx, "tasks", { module: "tasks", what: "tasks" }); if (denied) return denied;
+  const ctx = await requireCtx(); const { t } = await getT(); const denied = guard(ctx, "tasks", { module: "tasks", what: "tasks" }); if (denied) return denied;
   const { filter = "all", status = "", q = "", ok, err } = await searchParams;
   const rows = await asUser(ctx.user.id, (db) => db.q<{ id: string; title: string; status: string; priority: string; due_at: string | null; branch: string | null; tz: string | null; assignee: string | null; mine: boolean }>(
     `select t.id, t.title, t.status, t.priority, t.due_at, b.name branch, b.timezone tz, coalesce(nullif(p.display_name,''), p.email) assignee, t.assignee_id = $2 mine
@@ -23,7 +24,7 @@ export default async function Tasks({ searchParams }: { searchParams: Promise<{ 
   const tab = (f: string, label: string) => <Link key={f} href={`/tasks?filter=${f}`} aria-current={filter === f ? "page" : undefined} className={`inline-flex min-h-touch items-center rounded-md border px-2 text-sm ${filter === f ? "border-brand bg-brand-soft font-medium" : "border-line bg-surface hover:bg-sunken"}`}>{label}</Link>;
   return (
     <>
-      <PageHeader title={ctx.terms.task?.plural ?? "Tasks"} description="Work assigned across the network. Deadlines show in each branch's own time zone."
+      <PageHeader title={ctx.terms.task?.plural ?? t("Tasks")} description="Work assigned across the network. Deadlines show in each branch's own time zone."
         actions={ctx.has("create", "tasks") ? <ButtonLink href="/tasks/new" variant="primary">New task</ButtonLink> : undefined} />
       <Flash ok={ok} err={err} />
       <SavedViews ctx={ctx} page="/tasks" query={new URLSearchParams({ ...(filter !== "all" && { filter }), ...(status && { status }), ...(q && { q }) }).toString()} />

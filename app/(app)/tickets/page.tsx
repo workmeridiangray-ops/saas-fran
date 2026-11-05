@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n";
 import Link from "next/link";
 import { asUser } from "@/lib/db";
 import { requireCtx } from "@/lib/ctx";
@@ -14,7 +15,7 @@ export const metadata = { title: "Tickets" };
 const TONE: Record<string, Tone> = { open: "info", in_progress: "info", resolved: "ok", closed: "neutral" };
 
 export default async function Tickets({ searchParams }: { searchParams: Promise<{ kind?: string; status?: string; q?: string; tab?: string; ok?: string; err?: string }> }) {
-  const ctx = await requireCtx(); const denied = guard(ctx, "tickets", { module: "tickets", what: "tickets" }); if (denied) return denied;
+  const ctx = await requireCtx(); const { t } = await getT(); const denied = guard(ctx, "tickets", { module: "tickets", what: "tickets" }); if (denied) return denied;
   const { kind = "", status = "", q = "", tab = "list", ok, err } = await searchParams;
   if (tab === "sla") {
     const pol = await asUser(ctx.user.id, (db) => db.q<{ priority: string; resolve_hours: number }>("select priority, resolve_hours from sla_policies where company_id = $1", [ctx.companyId]));
@@ -31,7 +32,7 @@ export default async function Tickets({ searchParams }: { searchParams: Promise<
       order by (t.status in ('resolved','closed')), array_position(array['urgent','high','normal','low'], t.priority), t.created_at desc limit 300`, [ctx.companyId, kind, status, q]));
   return (
     <>
-      <PageHeader title={ctx.terms.ticket?.plural ?? "Tickets"} description="Internal requests, customer complaints and incidents, kept separate by type." actions={<>{ctx.has("configure", "tickets") && <ButtonLink href="/tickets?tab=sla">Deadlines</ButtonLink>}{ctx.has("create", "tickets") && <ButtonLink href="/tickets/new" variant="primary">Raise a ticket</ButtonLink>}</>} />
+      <PageHeader title={ctx.terms.ticket?.plural ?? t("Tickets")} description="Internal requests, customer complaints and incidents, kept separate by type." actions={<>{ctx.has("configure", "tickets") && <ButtonLink href="/tickets?tab=sla">Deadlines</ButtonLink>}{ctx.has("create", "tickets") && <ButtonLink href="/tickets/new" variant="primary">Raise a ticket</ButtonLink>}</>} />
       <Flash ok={ok} err={err} />
       <SavedViews ctx={ctx} page="/tickets" query={new URLSearchParams({ ...(kind && { kind }), ...(status && { status }), ...(q && { q }) }).toString()} />
       <form className="mb-2 flex flex-wrap items-end gap-1.5" role="search" aria-label="Filter tickets">

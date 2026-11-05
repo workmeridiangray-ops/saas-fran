@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n";
 import Link from "next/link";
 import { asUser } from "@/lib/db";
 import { requireCtx } from "@/lib/ctx";
@@ -10,7 +11,7 @@ export const metadata = { title: "Command centre" };
 interface Item { tone: Tone; label: string; text: string; href: string }
 
 export default async function CommandCentre({ searchParams }: { searchParams: Promise<{ ok?: string; err?: string }> }) {
-  const ctx = await requireCtx(); const { ok, err } = await searchParams;
+  const ctx = await requireCtx(); const { t } = await getT(); const { ok, err } = await searchParams;
   const uid = ctx.user.id;
   const d = await asUser(uid, async (db) => {
     const n = async (sql: string, p: unknown[] = []) => Number((await db.one<{ n: string }>(sql, p))!.n);
@@ -59,10 +60,10 @@ export default async function CommandCentre({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <PageHeader title="Command centre" description="What needs attention across your network, and what to do next." updated={new Date().toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} />
+      <PageHeader title={t("Command centre")} description={t("What needs attention across your network, and what to do next.")} updated={new Date().toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} />
       <Flash ok={ok} err={err} />
       {(firstUse || d.people <= 1) && (
-        <Panel title="Getting started" className="mb-3 max-w-prose">
+        <Panel title={t("Getting started")} className="mb-3 max-w-prose">
           <ol className="space-y-1">
             {steps.map((s, i) => (
               <li key={s.text}><Link href={s.href} className="flex min-h-touch items-center gap-1.5 rounded-md px-1 text-sm hover:bg-sunken">
@@ -73,7 +74,7 @@ export default async function CommandCentre({ searchParams }: { searchParams: Pr
         </Panel>
       )}
       <div className="grid gap-3 xl:grid-cols-3">
-        <Panel title="Needs attention" className="xl:col-span-2" action={<span className="text-xs text-muted">{items.length} item{items.length === 1 ? "" : "s"}</span>}>
+        <Panel title={t("Needs attention")} className="xl:col-span-2" action={<span className="text-xs text-muted">{items.length} item{items.length === 1 ? "" : "s"}</span>}>
           {items.length === 0 ? <p className="py-1 text-sm text-muted">Nothing needs attention right now. Overdue work, approvals and expiries will appear here.</p> : (
             <ul className="divide-y divide-line">
               {items.map((a, i) => (
@@ -83,7 +84,7 @@ export default async function CommandCentre({ searchParams }: { searchParams: Pr
             </ul>
           )}
         </Panel>
-        <Panel title="Waiting for your decision" action={<Link href="/approvals" className="text-sm font-medium text-brand">Open inbox</Link>}>
+        <Panel title={t("Waiting for your decision")} action={<Link href="/approvals" className="text-sm font-medium text-brand">{t("Open inbox")}</Link>}>
           {d.pending.length === 0 ? <p className="text-sm text-muted">No requests are waiting for you.</p> : (
             <ul className="space-y-1.5">
               {d.pending.map((a) => (
@@ -95,7 +96,7 @@ export default async function CommandCentre({ searchParams }: { searchParams: Pr
           )}
         </Panel>
       </div>
-      <h2 className="mb-1 mt-4 text-sm font-semibold text-muted">Network health</h2>
+      <h2 className="mb-1 mt-4 text-sm font-semibold text-muted">{t("Network health")}</h2>
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Active branches" value={`${active} of ${d.branches.length}`} href="/branches?status=active" note={d.branches.length ? "Open the branch list" : "Add your first branch"} />
         <Metric label="Open tasks" value={String(d.openTasks)} href="/tasks" note={d.overdueTasks ? `${d.overdueTasks} overdue` : "None overdue"} tone={d.overdueTasks ? "danger" : "neutral"} />

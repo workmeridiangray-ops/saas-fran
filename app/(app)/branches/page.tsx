@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { asUser } from "@/lib/db";
@@ -12,7 +13,7 @@ export const metadata = { title: "Branches" };
 const TONE: Record<BranchStatus, Tone> = { planned: "neutral", opening: "info", active: "ok", suspended: "warn", closing: "warn", closed: "neutral" };
 
 export default async function BranchesPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; sort?: string; ok?: string; err?: string }> }) {
-  const ctx = await requireCtx(); const denied = guard(ctx, "branches", { what: "branches" }); if (denied) return denied;
+  const ctx = await requireCtx(); const { t } = await getT(); const denied = guard(ctx, "branches", { what: "branches" }); if (denied) return denied;
   const { q = "", status = "", sort = "name", ok, err } = await searchParams;
   const order = { name: "b.name", code: "b.code", tasks: "open_tasks desc", score: "last_score desc nulls last" }[sort] ?? "b.name";
   const rows = await asUser(ctx.user.id, (db) => db.q<{ id: string; name: string; code: string; status: BranchStatus; ownership: string; region: string | null; brand: string | null; partner: string | null; open_tasks: string; last_score: string | null }>(
@@ -29,7 +30,7 @@ export default async function BranchesPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader title={ctx.terms.branch?.plural ?? "Branches"} description={`${total} location${total === 1 ? "" : "s"} in ${ctx.company.name}.`}
+      <PageHeader title={ctx.terms.branch?.plural ?? t("Branches")} description={`${total} location${total === 1 ? "" : "s"} in ${ctx.company.name}.`}
         actions={canAdd ? <ButtonLink href="/branches/new" variant="primary">Add branch</ButtonLink> : undefined} />
       <Flash ok={ok} err={err} />
       <SavedViews ctx={ctx} page="/branches" query={new URLSearchParams({ ...(q && { q }), ...(status && { status }), ...(sort !== "name" && { sort }) }).toString()} />
