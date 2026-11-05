@@ -14,7 +14,7 @@ export const RESOURCES = [
   "organisation", "branches", "franchise", "projects", "tasks", "approvals",
   "documents", "inspections", "training", "people", "purchasing", "inventory",
   "sales", "royalties", "marketing", "tickets", "assets", "reports",
-  "studio", "integrations", "billing", "users",
+  "studio", "integrations", "billing", "users", "actions",
 ] as const;
 export type Resource = (typeof RESOURCES)[number];
 

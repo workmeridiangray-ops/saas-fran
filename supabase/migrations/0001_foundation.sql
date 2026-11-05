@@ -25,8 +25,9 @@ create table public.companies (
 );
 
 create table public.profiles (
-  id uuid primary key, -- = auth.users.id
+  id uuid primary key, -- = identity.users.id / auth.users.id
   display_name text not null default '',
+  email text,
   created_at timestamptz not null default now()
 );
 

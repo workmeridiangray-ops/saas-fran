@@ -2,25 +2,6 @@
 \set ON_ERROR_STOP on
 set client_min_messages = warning;
 
-create schema t;
-create function t.check(label text, ok boolean) returns void language plpgsql as $$
-begin if ok is not true then raise exception 'FAILED: %', label; end if; end $$;
--- act as a signed-in user (or anon/superuser when null) for the rest of the transaction
-create function t.as_user(u uuid) returns void language plpgsql as $$
-begin
-  perform set_config('request.jwt.claim.sub', coalesce(u::text, ''), false);
-  execute case when u is null then 'reset role' else 'set role authenticated' end;
-end $$;
-create function t.denied(label text, stmt text) returns void language plpgsql as $$
-begin
-  begin execute stmt; exception when others then return; end;
-  raise exception 'FAILED (should have been refused): %', label;
-end $$;
-create function t.affected(stmt text) returns int language plpgsql as $$
-declare n int; begin execute stmt; get diagnostics n = row_count; return n; end $$;
-grant usage on schema t to public;
-grant execute on all functions in schema t to public;
-
 -- ------------------------------------------------------------ fixtures (superuser)
 \set alice   '''00000000-0000-0000-0000-00000000000a'''
 \set bob     '''00000000-0000-0000-0000-00000000000b'''
@@ -62,8 +43,6 @@ insert into membership_roles(membership_id, role_id, company_id) values
   ('a5000000-0000-0000-0000-000000000004', 'a4000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001'),
   ('b5000000-0000-0000-0000-000000000001', 'b4000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001');
 
-insert into plans(id, name) values ('growth', 'Growth');
-insert into plan_versions(plan_id, version, monthly_price_minor, max_branches, modules) values ('growth', 1, 29900, 10, '{tasks}');
 insert into platform_staff(user_id, role) values (:staff, 'support');
 
 -- ------------------------------------------------------------ tenant isolation
