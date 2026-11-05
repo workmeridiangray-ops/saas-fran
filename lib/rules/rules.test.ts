@@ -395,6 +395,7 @@ describe("integration security", () => {
     for (const ip of ["8.8.8.8", "1.1.1.1", "172.32.0.1", "2606:4700:4700::1111"]) expect(isPrivateAddress(ip), ip).toBe(false);
   });
   it("accepts only https addresses without credentials", () => {
+    delete process.env.WEBHOOK_ALLOW_PRIVATE;   // the e2e environment sets it; this test is about the production behaviour
     expect(urlProblem("https://hooks.example.com/x")).toBeNull();
     expect(urlProblem("http://hooks.example.com/x")).toMatch(/https/); expect(urlProblem("https://user:pw@example.com")).toMatch(/username/); expect(urlProblem("https://localhost/x")).toMatch(/can't be reached/); expect(urlProblem("ftp://x.com")).toMatch(/https/); expect(urlProblem("nonsense")).toMatch(/full web address/);
   });
