@@ -22,7 +22,7 @@ export default async function StatementPage({ params, searchParams }: { params: 
       `select s.id, s.number, s.period::text, s.status, s.base_minor, s.royalty_minor, s.minimum_applied, s.due_date::text, s.review_reason, s.issued_at, s.rule_version, r.type rule_type, r.rate_bp, r.minimum_minor::text, r.fixed_minor::text, b.name branch, p.name partner, s.prepared_by,
               coalesce(nullif(pp.display_name,''), pp.email) preparer, coalesce(nullif(pa.display_name,''), pa.email) approver, case when s.status = 'issued' then app.statement_outstanding(s.id) else s.royalty_minor end::text outstanding
          from statements s join royalty_rules r on r.id = s.rule_id join branches b on b.id = s.branch_id join franchise_partners p on p.id = s.partner_id left join profiles pp on pp.id = s.prepared_by left join profiles pa on pa.id = s.approved_by where s.id = $1`, [id]);
-    const solo = Number((await db.one<{ n: string }>("select count(*) n from memberships where company_id = $1 and status = 'active'", [ctx.companyId]))!.n) < 2;
+    const solo = (await db.one<{ s: boolean }>("select app.sole_member($1) s", [ctx.companyId]))!.s;   // same rule the database applies
     return s ? { solo, s, alloc: await db.q<{ amount_minor: string; received_on: string; reference: string }>("select a.amount_minor, pp.received_on::text, pp.reference from payment_allocations a join partner_payments pp on pp.id = a.payment_id where a.statement_id = $1 order by pp.received_on", [id]) } : null;
   });
   if (!d) notFound(); const { s } = d; const m = (n: number | string) => formatMinor(Number(n), ctx.company.currency);

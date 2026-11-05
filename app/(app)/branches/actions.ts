@@ -3,7 +3,7 @@ import { asUser } from "@/lib/db";
 import { requireCtx } from "@/lib/ctx";
 import { fail, run, str, uuid } from "@/lib/flash";
 import { canMoveBranch, type BranchStatus } from "@/lib/rules/branch-lifecycle";
-import { accessRemovalPlan, canClose, closureChecklist } from "@/lib/rules/branch-closure";
+import { canClose, closureChecklist } from "@/lib/rules/branch-closure";
 import { loadClosureSnapshot } from "@/lib/data/branches";
 
 const opt = (f: FormData, k: string) => { const v = str(f, k); return v === "" ? null : v; };
@@ -61,13 +61,8 @@ export async function closeBranch(f: FormData) {
       const snap = await loadClosureSnapshot(db, ctx.companyId, id);
       const items = closureChecklist(snap);
       if (!canClose(items)) fail("There is still outstanding work. Resolve it, then close the branch.");
-      const plan = accessRemovalPlan(snap);
-      // Access removal is last. Everyone scoped only to this branch is suspended; others lose just this branch.
-      await db.q("update memberships set branch_ids = array_remove(branch_ids, $2) where company_id = $1 and $2 = any(branch_ids) and cardinality(branch_ids) > 1", [ctx.companyId, id]);
-      await db.q("update memberships set status = 'suspended', branch_ids = '{}' where company_id = $1 and branch_ids = array[$2]::uuid[] and user_id <> $3", [ctx.companyId, id, ctx.user.id]);
-      await db.q("update branches set status = 'closing' where id = $1 and status <> 'closing'", [id]);
-      await db.q("update branches set status = 'closed', closed_at = now() where id = $1", [id]);
-      void plan;
+      // The database repeats these checks and removes access last, in one transaction.
+      await db.q("select public.close_branch($1)", [id]);
     });
   });
 }

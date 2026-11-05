@@ -15,7 +15,7 @@ export default async function Knowledge({ searchParams }: { searchParams: Promis
   const rows = await asUser(ctx.user.id, (db) => db.q<{ id: string; title: string; kind: string; status: string; current_version: number; expires_on: string | null; acked: string; total: string; mine: boolean }>(
     `select d.id, d.title, d.kind, d.status, d.current_version, d.expires_on,
             (select count(*) from acknowledgements a where a.document_id = d.id and a.version = d.current_version) acked,
-            (select count(*) from memberships m where m.company_id = d.company_id and m.status = 'active') total,
+            (select count(*) from public.company_people(d.company_id)) total,
             exists (select 1 from acknowledgements a where a.document_id = d.id and a.version = d.current_version and a.user_id = $2) mine
        from documents d where d.company_id = $1 and ($3 = '' or d.title ilike '%'||$3||'%') order by (d.status = 'archived'), d.title limit 300`, [ctx.companyId, ctx.user.id, q]));
   const canWrite = ctx.has("create", "documents");

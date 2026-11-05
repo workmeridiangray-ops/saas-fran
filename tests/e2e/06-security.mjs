@@ -2,7 +2,7 @@ import { BASE, PW, addBranch, expect, fetchIn, lastMailLink, open, newUser, owne
 
 console.log("Security: isolation, reset, lockout, two-factor, sessions, redirects, injection");
 const { browser, page: a, errors } = await open();
-const aMail = uniq("secA"), bMail = uniq("secB"); let b, branchId;
+const aMail = uniq("secA"), bMail = uniq("secB"); const NEWPW = "a brand new passphrase 77"; let b, branchId;
 
 await step("two companies, one branch in A", async () => {
   await ownerWithCompany(a, aMail, "Alice A", `Alpha ${Date.now()}`); branchId = await addBranch(a, "Alpha HQ", "AHQ");
@@ -53,11 +53,12 @@ await step("five wrong passwords lock the account even for the right password", 
 await step("password reset: single-use link, old password dead, other devices signed out", async () => {
   const other = await newUser(browser); await signIn(other.page, aMail); await other.page.waitForURL((u) => u.pathname === "/");
   const c = await browser.newContext(); const p = await c.newPage(); await p.goto(BASE + "/forgot"); await p.getByLabel("Email").fill(aMail); await p.getByRole("button", { name: "Send reset link" }).click(); await p.getByText("If that address has an account").waitFor();
-  const link = await lastMailLink(aMail, /http\S+reset\S+/); await p.goto(link); await p.getByLabel("New password").fill("a brand new passphrase 77"); await p.getByRole("button", { name: "Change password" }).click(); await p.getByText("Password changed.").waitFor();
+  const link = await lastMailLink(aMail, /http\S+reset\S+/); await p.goto(link); await p.getByLabel("New password").fill(NEWPW); await p.getByRole("button", { name: "Change password" }).click(); await p.getByText("Password changed.").waitFor();
   await p.goto(link); await p.getByText("This link isn't valid").waitFor();
   await other.page.goto(BASE + "/branches"); await other.page.waitForURL(/signin/);
-  await signIn(p, aMail, PW); await p.getByText(/don't match/).waitFor(); await signIn(p, aMail, "a brand new passphrase 77"); await p.waitForURL((u) => u.pathname === "/");
-  await q("update identity.users set password_hash = (select password_hash from identity.users where email = $2) where email = $1", [aMail, bMail]); await c.close(); await other.ctx.close();
+  await signIn(p, aMail, PW); await p.getByText(/don't match/).waitFor(); await signIn(p, aMail, NEWPW); await p.waitForURL((u) => u.pathname === "/");
+  await c.close(); await other.ctx.close();
+  await signIn(a, aMail, NEWPW); await a.waitForURL((u) => u.pathname === "/");   // the reset signed this browser out too
 });
 await step("reset requests for unknown addresses look identical", async () => {
   const c = await browser.newContext(); const p = await c.newPage(); await p.goto(BASE + "/forgot"); await p.getByLabel("Email").fill("nobody-" + Date.now() + "@example.com"); await p.getByRole("button", { name: "Send reset link" }).click(); await p.getByText("If that address has an account").waitFor(); await c.close();
@@ -70,7 +71,7 @@ await step("two-factor: enrol with a real authenticator code and get recovery co
   const codes = await a.locator('[aria-label="Recovery codes"] li').allInnerTexts(); expect(codes.length === 8, "recovery codes: " + codes.length); globalThis.recovery = codes;
 });
 await step("two-factor: sign-in now needs the code; wrong codes fail; the right one works", async () => {
-  const c = await browser.newContext(); const p = await c.newPage(); await signIn(p, aMail, "a brand new passphrase 77"); await p.waitForURL(/2fa/);
+  const c = await browser.newContext(); const p = await c.newPage(); await signIn(p, aMail, NEWPW); await p.waitForURL(/2fa/);
   await p.goto(BASE + "/branches"); await p.waitForURL(/2fa/);   // a half-signed-in session reaches nothing
   await p.getByLabel(/6-digit code/).fill("123456"); await p.getByRole("button", { name: "Continue" }).click(); await p.getByText("That code isn't right").waitFor();
   const [{ totp_secret }] = await q("select totp_secret from identity.users where email = $1", [aMail]);
@@ -79,7 +80,7 @@ await step("two-factor: sign-in now needs the code; wrong codes fail; the right 
 await step("two-factor: a recovery code works exactly once", async () => {
   const code = globalThis.recovery[0];
   for (const [i, expectOk] of [[0, true], [1, false]]) {
-    const c = await browser.newContext(); const p = await c.newPage(); await signIn(p, aMail, "a brand new passphrase 77"); await p.waitForURL(/2fa/);
+    const c = await browser.newContext(); const p = await c.newPage(); await signIn(p, aMail, NEWPW); await p.waitForURL(/2fa/);
     await p.getByLabel(/6-digit code/).fill(code); await p.getByRole("button", { name: "Continue" }).click();
     if (expectOk) await p.waitForURL((u) => u.pathname === "/"); else await p.getByText("That code isn't right").waitFor(); await c.close();
   }

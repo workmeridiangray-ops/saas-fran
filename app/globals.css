@@ -5,6 +5,8 @@
 @layer base {
   html { background: theme("colors.canvas"); color: theme("colors.ink"); }
   body { font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; }
+  /* Grid items default to min-width:auto, so a wide table inside one stretches the whole page. Let them shrink. */
+  .grid > * { min-width: 0; }
   :focus-visible { outline: 2px solid theme("colors.brand"); outline-offset: 2px; border-radius: 4px; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }

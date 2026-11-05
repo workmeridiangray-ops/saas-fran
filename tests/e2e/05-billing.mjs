@@ -63,12 +63,12 @@ await step("platform staff see the company and record the payment", async () => 
 });
 await step("support-level staff can look but not change anything", async () => {
   await q("update platform_staff set role = 'support' where user_id = (select id from identity.users where email = $1)", [staffEmail]);
-  await staff.goto(BASE + "/platform/companies?q=" + encodeURIComponent(CO)); await staff.getByRole("link", { name: CO }).click();
+  const [{ id: coId }] = await q("select id from companies where name = $1", [CO]); globalThis.coUrl = BASE + "/platform/companies/" + coId; await staff.goto(globalThis.coUrl);
   expect(await staff.getByRole("button", { name: /Suspend company/ }).count() === 0, "support staff can suspend");
   await q("update platform_staff set role = 'billing' where user_id = (select id from identity.users where email = $1)", [staffEmail]);
 });
 await step("billing staff suspend with a recorded reason; it is audited under their name", async () => {
-  await staff.reload(); await staff.getByLabel("Reason").fill("Chargeback under review"); await staff.getByRole("button", { name: "Suspend company" }).click(); await staff.getByText("Company suspended.").waitFor();
+  await staff.goto(globalThis.coUrl); await staff.getByLabel("Reason").fill("Chargeback under review"); await staff.getByRole("button", { name: "Suspend company" }).click(); await staff.getByText("Company suspended.").waitFor();
   const [a] = await q("select count(*)::int n from audit_log where table_name = 'companies' and op like 'status:suspended:%' and actor = (select id from identity.users where email = $1)", [staffEmail]); expect(a.n === 1, "no audit entry");
   await staff.getByLabel("Reason").fill("Resolved"); await staff.getByRole("button", { name: "Reactivate company" }).click(); await staff.getByText("Company reactivated.").waitFor();
 });

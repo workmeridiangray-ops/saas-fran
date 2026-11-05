@@ -5,10 +5,7 @@ import type { BranchSnapshot } from "@/lib/rules/branch-closure";
 export async function loadClosureSnapshot(db: Db, companyId: string, branchId: string): Promise<BranchSnapshot> {
   const n = async (sql: string) => Number((await db.one<{ n: string }>(sql, [companyId, branchId]))!.n);
   // Only people limited to this branch are affected. Someone scoped to several branches keeps the others.
-  const users = await db.q<{ user_id: string; name: string; others: boolean }>(
-    `select m.user_id, coalesce(p.display_name, p.email, 'Unknown') as name, cardinality(m.branch_ids) > 1 as others
-       from memberships m left join profiles p on p.id = m.user_id
-      where m.company_id = $1 and m.status = 'active' and $2::uuid = any(m.branch_ids)`, [companyId, branchId]);
+  const users = await db.q<{ user_id: string; name: string; others: boolean }>("select user_id, name, keeps_other_branches as others from public.branch_people($1, $2)", [companyId, branchId]);
   return {
     pendingOrders: await n("select count(*) n from purchase_orders where company_id=$1 and branch_id=$2 and status in ('sent','partially_received')"),
     stockUnitsOnHand: 0,

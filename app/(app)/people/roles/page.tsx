@@ -33,7 +33,7 @@ export default async function Roles({ searchParams }: { searchParams: Promise<{ 
           <form action={saveRole} className="space-y-2">
             <input type="hidden" name="id" value={cur?.id ?? ""} />
             <div className="max-w-form"><Field label="Role name" name="name" defaultValue={cur?.name ?? ""} required /></div>
-            <div role="region" aria-label="Permissions" tabIndex={0} className="overflow-x-auto rounded-md border border-line">
+            <div role="region" aria-label="Permissions" tabIndex={0} className="relative overflow-x-auto rounded-md border border-line">
               <table className="w-full min-w-[44rem] text-sm"><thead><tr><th scope="col" className="bg-sunken px-2 py-1 text-left text-xs font-semibold text-muted">Area</th>
                 {ACTIONS.map((a) => <th key={a} scope="col" className="bg-sunken px-1 py-1 text-center text-xs font-semibold text-muted">{titleCase(a)}</th>)}<th scope="col" className="bg-sunken px-1 py-1 text-center text-xs font-semibold text-muted">Own only</th></tr></thead>
                 <tbody>{RESOURCES.map((r) => (

@@ -55,9 +55,9 @@ export function Shell({ ctx, children }: { ctx: Ctx; children: React.ReactNode }
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:p-2">Skip to content</a>
       <aside aria-label="Primary" className="hidden w-[15rem] shrink-0 border-r border-line bg-surface lg:block">
         <div className="sticky top-0 flex h-screen flex-col overflow-y-auto p-2">
-          <Link href="/workspaces" className="mb-3 flex min-h-touch items-center justify-between gap-1 rounded-md border border-line bg-canvas px-2 hover:bg-sunken" aria-label={`Workspace: ${ctx.company.name}. Switch workspace`}>
+          <Link href="/workspaces" className="mb-3 flex min-h-touch items-center justify-between gap-1 rounded-md border border-line bg-canvas px-2 hover:bg-sunken" title="Switch workspace">
             <span className="min-w-0"><span className="block text-xs text-muted">Workspace</span><span className="block truncate text-sm font-semibold">{ctx.company.name}</span></span>
-            <ChevronsUpDown aria-hidden size={16} className="shrink-0 text-muted" />
+            <span className="sr-only">, switch workspace</span><ChevronsUpDown aria-hidden size={16} className="shrink-0 text-muted" />
           </Link>
           <NavList ctx={ctx} />
           <div className="mt-auto space-y-0.5 border-t border-line pt-2">

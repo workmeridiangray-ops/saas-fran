@@ -27,7 +27,7 @@ export default async function Tasks({ searchParams }: { searchParams: Promise<{ 
       <Flash ok={ok} err={err} />
       <div className="mb-2 flex flex-wrap items-end gap-1.5">
         {tab("all", "All")}{tab("mine", "Assigned to me")}{tab("overdue", "Overdue")}
-        <form className="ml-auto flex items-end gap-1" role="search" aria-label="Filter tasks"><input type="hidden" name="filter" value={filter} />
+        <form className="flex flex-wrap items-end gap-1 sm:ml-auto" role="search" aria-label="Filter tasks"><input type="hidden" name="filter" value={filter} />
           <div><label htmlFor="q" className="mb-0.5 block text-xs font-medium text-muted">Search</label><input id="q" name="q" defaultValue={q} className="min-h-touch rounded-md border border-line-strong bg-surface px-1.5 text-sm" /></div>
           <div><label htmlFor="status" className="mb-0.5 block text-xs font-medium text-muted">Status</label><select id="status" name="status" defaultValue={status} className="min-h-touch rounded-md border border-line-strong bg-surface px-1.5 text-sm"><option value="">Any</option>{Object.keys(TONE).map((s) => <option key={s} value={s}>{titleCase(s)}</option>)}</select></div>
           <Button type="submit">Apply</Button></form>

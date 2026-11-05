@@ -39,4 +39,4 @@ Franchise applicant pipeline and agreements; opening projects; stock ledger; con
 | 3 | Purchase request → approval → order → partial receipt | `tests/e2e/02-purchasing.mjs` |
 | 4 | Royalty calculation → review → statement → payment allocation | `tests/e2e/04-royalties.mjs` |
 | 5 | Subscription change → limit validation → billing confirmation | `tests/e2e/05-billing.mjs` |
-| 6 | Branch closure → outstanding-work review → access removal | `tests/db/*` (closure rules), `tests/e2e/07` covers the screen; see note |
+| 6 | Branch closure → outstanding-work review → access removal | `tests/e2e/08-closure.mjs` |

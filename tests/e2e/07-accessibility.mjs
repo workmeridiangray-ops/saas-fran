@@ -7,7 +7,7 @@ const { browser, ctx, page, errors } = await open();
 const PAGES = ["/", "/branches", "/branches/new", "/tasks", "/tasks/new", "/checklists", "/approvals", "/approvals?tab=rules", "/inspections", "/inspections?tab=templates", "/inspections/new", "/purchasing", "/purchasing?tab=suppliers", "/purchasing/new", "/tickets", "/tickets/new", "/knowledge", "/knowledge/new", "/training", "/training/new", "/assets", "/assets?tab=licences", "/people", "/people/roles", "/organisation", "/reports", "/audit", "/billing", "/notifications", "/account", "/workspaces", "/onboarding"];
 
 async function scan(p, url) {
-  await p.goto(BASE + url); await p.waitForLoadState("networkidle");
+  await p.goto(BASE + url, { waitUntil: "domcontentloaded" }); await p.locator("main").first().waitFor({ timeout: 8000 }).catch(() => { throw new Error(`${url} did not render (ended at ${p.url()})`); });
   await p.addScriptTag({ path: axePath });
   const r = await p.evaluate(async () => await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] }));
   return r.violations.map((v) => `${v.id} (${v.impact}) x${v.nodes.length}: ${v.nodes[0].target.join(" ")}`);

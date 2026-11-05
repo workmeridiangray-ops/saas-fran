@@ -1,4 +1,4 @@
-import { BASE, addBranch, expect, inviteAndJoin, open, ownerWithCompany, q, step, summary, uniq } from "./helpers.mjs";
+import { BASE, db, addBranch, expect, inviteAndJoin, open, ownerWithCompany, q, step, summary, uniq } from "./helpers.mjs";
 
 console.log("Flow 6: branch closure -> outstanding-work review -> access removal");
 const { browser, page: owner, errors } = await open();
@@ -7,21 +7,23 @@ const CO = `Close Co ${Date.now()}`; const staffEmail = uniq("eaststaff"); let e
 await step("a branch with an open task and an asset, and a person scoped to it", async () => {
   await ownerWithCompany(owner, uniq("closeowner"), "Cleo Owner", CO); await addBranch(owner, "Keep", "KP1"); eastUrl = await addBranch(owner, "East", "EA1");
   east = eastUrl;
-  await owner.goto(BASE + "/tasks/new"); await owner.getByLabel("Title").fill("Count the till"); await owner.getByLabel("Branch").selectOption({ label: "East" }); await owner.getByRole("button", { name: "Create task" }).click(); await owner.getByText("Task created.").waitFor();
-  await owner.goto(BASE + "/assets"); const f = owner.locator('form:has(button:has-text("Add asset"))'); await f.getByLabel("Branch").selectOption({ label: "East" }); await f.getByLabel(/^Name/).fill("Espresso machine"); await f.getByRole("button", { name: "Add asset" }).click(); await owner.getByText("Asset added.").waitFor();
+  await owner.goto(BASE + "/tasks/new"); await owner.getByLabel("Title").fill("Count the till"); await owner.locator('select[name="branch_id"]').selectOption({ label: "East" }); await owner.getByRole("button", { name: "Create task" }).click(); await owner.getByText("Task created.").waitFor();
+  await owner.goto(BASE + "/assets"); const f = owner.locator('form:has(button:has-text("Add asset"))'); await f.locator('select[name="branch_id"]').selectOption({ label: "East" }); await f.getByLabel(/^Name/).fill("Espresso machine"); await f.getByRole("button", { name: "Add asset" }).click(); await owner.getByText("Asset added.").waitFor();
   ({ page: staff } = await inviteAndJoin(owner, browser, staffEmail, "Eli East", "Employee"));
   await owner.goto(BASE + "/people"); await owner.locator("tr", { hasText: "Eli East" }).getByRole("link", { name: "Edit access" }).click();
-  await owner.getByLabel("East").check(); await owner.getByRole("button", { name: "Save access" }).click(); await owner.getByText("Access updated.").waitFor();
+  const editForm = owner.locator('form:has(button:has-text("Save access"))'); await editForm.getByLabel("East").check(); await editForm.getByRole("button", { name: "Save access" }).click(); await owner.getByText("Access updated.").waitFor();
 });
 await step("closing is blocked and says exactly what is outstanding", async () => {
   await owner.goto(BASE + `/branches/${east}/close`); await owner.getByText(/items? still outstanding/).waitFor();
   expect(await owner.getByRole("button", { name: "Close branch and remove access" }).count() === 0, "close button shown with work outstanding");
   await owner.getByText("Open tasks").waitFor(); await owner.getByText("Assigned assets").waitFor(); await owner.getByText("Eli East").waitFor();
 });
-await step("a direct attempt to close is refused by the server too", async () => {
-  const [{ id }] = await q("select b.id from branches b join companies c on c.id = b.company_id where c.name = $1 and b.code = 'EA1'", [CO]);
-  let blocked = false; try { await q("update branches set status = 'closed', closed_at = now() where id = $1", [id]); } catch { blocked = false; }
-  // (the database allows a superuser update; the app path is what enforces the review, and the rules are unit-tested)
+await step("a direct attempt to close is refused by the database itself", async () => {
+  const [{ id, owner_id }] = await q("select b.id, (select user_id from memberships m join membership_roles mr on mr.membership_id = m.id join roles r on r.id = mr.role_id where m.company_id = b.company_id and r.name = 'Company owner' limit 1) owner_id from branches b join companies c on c.id = b.company_id where c.name = $1 and b.code = 'EA1'", [CO]);
+  const c = await db.connect(); let msg = "";
+  try { await c.query("begin"); await c.query("set local role authenticated"); await c.query("select set_config('request.jwt.claim.sub', $1, true)", [owner_id]); await c.query("select public.close_branch($1)", [id]); }
+  catch (e) { msg = e.message; } finally { await c.query("rollback").catch(() => {}); c.release(); }
+  expect(/open tasks|assets still assigned/.test(msg), "the database allowed it, or failed differently: " + msg);
 });
 await step("resolve the task and dispose of the asset; the screen updates", async () => {
   await owner.goto(BASE + "/tasks"); await owner.getByRole("link", { name: "Count the till" }).click(); await owner.getByLabel("Completion note").fill("Counted and banked"); await owner.getByRole("button", { name: "Mark done" }).click(); await owner.getByText("Task completed.").waitFor();

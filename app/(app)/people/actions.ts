@@ -14,7 +14,7 @@ export async function inviteMember(f: FormData) {
     const inv = await asUser(ctx.user.id, async (db) => {
       const plan = await db.one<{ max_users: number | null }>("select max_users from app.current_plan($1)", [ctx.companyId]);
       if (plan?.max_users !== null && plan?.max_users !== undefined) {
-        const used = Number((await db.one<{ n: string }>("select (select count(*) from memberships where company_id=$1 and status in ('active','invited')) + (select count(*) from invitations where company_id=$1 and status='pending') n", [ctx.companyId]))!.n);
+        const u = (await db.one<{ users: number; pending_invites: number }>("select users, pending_invites from public.company_usage($1)", [ctx.companyId]))!; const used = u.users + u.pending_invites;
         if (used >= plan.max_users) fail(`Your plan includes ${plan.max_users} users and you've reached it. Upgrade the plan to invite more people.`);
       }
       await db.q("update invitations set status = 'expired' where company_id = $1 and email = $2 and status = 'pending' and expires_at < now()", [ctx.companyId, email]);

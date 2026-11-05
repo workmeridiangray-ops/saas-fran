@@ -39,7 +39,7 @@ export async function publishVersion(f: FormData) {
       await db.q("update document_versions set published = true where document_id = $1 and version = $2", [id, version]);
       await db.q("update documents set status = 'published', current_version = $2 where id = $1", [id, version]);
       const doc = (await db.one<{ title: string }>("select title from documents where id = $1", [id]))!;
-      await db.q(`insert into notifications(company_id, user_id, title, body, href) select $1, user_id, $2, 'Please read and acknowledge the new version.', $3 from memberships where company_id = $1 and status = 'active' and user_id <> $4`, [ctx.companyId, `Updated: ${doc.title}`, `/knowledge/${id}`, ctx.user.id]);
+      await db.q("select public.notify_all($1, $2, 'Please read and acknowledge the new version.', $3)", [ctx.companyId, `Updated: ${doc.title}`, `/knowledge/${id}`]);
     });
   });
 }

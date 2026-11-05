@@ -20,10 +20,6 @@ export async function submitForApproval(db: Db, a: { companyId: string; userId: 
     "insert into approval_requests(company_id, branch_id, kind, subject_id, title, amount_minor, requester_id, steps) values ($1,$2,$3,$4,$5,$6,$7,$8) returning id",
     [a.companyId, a.branchId, a.kind, a.subjectId, a.title, a.amountMinor, a.userId, JSON.stringify(steps)]))!.id;
   // Tell the people who can decide step 1.
-  await db.q(
-    `insert into notifications(company_id, user_id, title, body, href)
-     select $1, m.user_id, $2, $3, $4 from memberships m join membership_roles mr on mr.membership_id = m.id
-      where m.company_id = $1 and m.status = 'active' and mr.role_id = $5 and m.user_id <> $6`,
-    [a.companyId, `Approval needed: ${a.title}`, "", `/approvals?open=${req}`, steps[0]?.role_id ?? null, a.userId]);
+  if (steps[0]?.role_id) await db.q("select public.notify_role($1, $2, $3, $4, $5)", [a.companyId, steps[0].role_id, `Approval needed: ${a.title}`, "", `/approvals?open=${req}`]);
   return req;
 }

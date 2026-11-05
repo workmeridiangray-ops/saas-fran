@@ -107,7 +107,7 @@ export function Alert({ tone, title, children }: { tone: Exclude<Tone, "neutral"
 /* ---------- Table primitives (wide tables scroll inside their own region) ---------- */
 export function TableWrap({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div role="region" aria-label={label} tabIndex={0} className="overflow-x-auto rounded-lg border border-line bg-surface shadow-raised">
+    <div role="region" aria-label={label} tabIndex={0} className="relative overflow-x-auto rounded-lg border border-line bg-surface shadow-raised">
       <table className="w-full min-w-[40rem] border-collapse text-sm">{children}</table>
     </div>
   );

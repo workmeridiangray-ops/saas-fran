@@ -27,13 +27,13 @@ export async function newUser(browser) { const ctx = await browser.newContext({ 
 let pass = 0; const failures = [];
 export async function step(name, fn) {
   try { await fn(); pass++; console.log("  ok   " + name); }
-  catch (e) { failures.push(name); console.log("  FAIL " + name + "\n       " + String(e.message).split("\n")[0]); }
+  catch (e) { failures.push(name); const m = String(e.message).split("\n").filter(Boolean).slice(0, 14).join("\n       "); console.log("  FAIL " + name + "\n       " + m); }
 }
 export function expect(cond, msg) { if (!cond) throw new Error(msg); }
 export const summary = () => { console.log(`\n${pass} passed, ${failures.length} failed`); return failures.length; };
 
 export async function lastMailLink(email, re = /https?:\/\/\S+/) {
-  const rows = await q("select body from identity.outbox where to_email = $1 order by id desc limit 1", [email]);
+  const rows = await q("select body from identity.outbox where to_email = $1 order by id desc limit 1", [email.toLowerCase()]);
   const m = rows[0]?.body.match(re); if (!m) throw new Error("no mail link for " + email);
   return m[0].replace(/[.)]+$/, "");
 }
@@ -49,7 +49,7 @@ export async function signUpAndIn(page, email, name, password = "a long unusual 
 
 import { createHmac } from "node:crypto";
 export const PW = "a long unusual passphrase";
-export const uniq = (p) => `${p}+${Date.now()}${Math.floor(Math.random() * 1000)}@example.com`;
+export const uniq = (p) => `${p.toLowerCase()}+${Date.now()}${Math.floor(Math.random() * 1000)}@example.com`;
 
 /** Sign in an existing account in this page. */
 export async function signIn(page, email, password = PW) {

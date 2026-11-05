@@ -1,16 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC = [/^\/(signin|signup|forgot|reset|verify|2fa)(\/|$)/, /^\/invite\//, /^\/api\/(health|cron)/, /^\/_next\//, /^\/favicon/];
-
-/** Cheap gate: no session cookie means go to sign-in. Real validation happens on every page and action. */
+/**
+ * Passes the requested path to server components so the sign-in redirect can return people to it.
+ * It deliberately does not gate access: every page and every API route checks the session itself,
+ * and a redirect issued from here can't be made host-independent behind a proxy.
+ */
 export function middleware(req: NextRequest) {
-  const { pathname, search } = req.nextUrl;
-  if (PUBLIC.some((r) => r.test(pathname))) return NextResponse.next();
-  if (!req.cookies.get("nm_sid")) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/signin"; url.search = `?next=${encodeURIComponent(pathname + search)}`;
-    return NextResponse.redirect(url);
-  }
-  return NextResponse.next();
+  const headers = new Headers(req.headers);
+  headers.set("x-nm-path", req.nextUrl.pathname + req.nextUrl.search);   // always overwritten: a client can't forge it
+  return NextResponse.next({ request: { headers } });
 }
 export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };

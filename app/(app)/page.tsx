@@ -30,7 +30,7 @@ export default async function CommandCentre({ searchParams }: { searchParams: Pr
       training: has("training") ? await n("select count(*) n from enrolments where company_id=$1 and user_id=$2 and status <> 'passed'", [ctx.companyId, uid]) : 0,
       urgentTickets: has("tickets") ? await n("select count(*) n from tickets where company_id=$1 and status in ('open','in_progress') and priority in ('high','urgent')", [ctx.companyId]) : 0,
       dues: has("royalties") ? await db.q<{ number: string; due_date: string }>("select s.number, s.due_date from statements s where s.company_id=$1 and s.status='issued' and s.due_date < current_date and app.statement_outstanding(s.id) > 0 limit 3", [ctx.companyId]) : [],
-      people: await n("select count(*) n from memberships where company_id=$1 and status in ('active','invited')", [ctx.companyId]),
+      people: await n("select count(*) n from public.company_people($1)", [ctx.companyId]),
     };
     return out;
   });

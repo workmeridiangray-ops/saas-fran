@@ -196,6 +196,47 @@ select t.check('a stranger cannot read it', (select count(*) from attachments) =
 select t.as_user(:owner);
 select 'attachment tests passed' as result;
 
+-- ============================================================ safe functions for people without "view users"
+select t.as_user(null);
+insert into profiles(id, display_name, email) values (:owner, 'Olivia Owner', 'o@x.test'), (:mgr, 'Maya Manager', 'm@x.test'), (:insp, 'Ian Inspector', 'i@x.test'), (:fin, 'Finn Finance', 'f@x.test');
+select t.as_user(:mgr);
+select t.check('a manager cannot read memberships directly', (select count(*) from memberships) = 1);
+select t.check('...but can list colleagues by name for assignment', (select count(*) from company_people(:'cid')) = 4);
+select t.check('...and see true usage counts', (select users from company_usage(:'cid')) = 4);
+select t.check('a stranger gets nothing from the usage function', (select count(*) from (select t.as_user('99999999-0000-0000-0000-000000000009')) x, company_usage(:'cid')) = 0);
+select t.as_user(:mgr);
+select t.check('notify_role reaches the people holding the role, not the caller', notify_role(:'cid', :'fin_role', 'Approval needed', '', '/approvals') = 1);
+select t.denied('notify_role with an off-site link', format($$select notify_role(%L, %L, 'x', '', 'https://evil.example')$$, :'cid', :'fin_role'));
+select t.denied('notify_all without permission to edit documents', format($$select notify_all(%L, 'x', '', '/knowledge')$$, :'cid'));
+select t.as_user(:fin);
+select t.check('the finance person got the notification', (select count(*) from notifications where title = 'Approval needed') = 1);
+select t.as_user(:owner);
+select t.check('owner can notify everyone about a document', notify_all(:'cid', 'New SOP', 'Please read', '/knowledge') = 3);
+
+-- ============================================================ changing a role
+select t.as_user(:owner);
+delete from membership_roles where membership_id = '11111111-1111-0000-0000-000000000002' and company_id = :'cid';
+insert into membership_roles(membership_id, role_id, company_id) values ('11111111-1111-0000-0000-000000000002', :'mgr_role', :'cid');
+select t.check('owner can replace a role link', (select count(*) from membership_roles where membership_id = '11111111-1111-0000-0000-000000000002') = 1);
+select t.as_user(:mgr);
+select t.check('a manager cannot touch role links', t.affected(format($$delete from membership_roles where membership_id = %L$$, '11111111-1111-0000-0000-000000000003')) = 0);
+select t.as_user(:owner);
+
+-- ============================================================ closing a branch is enforced by the database
+select t.as_user(:owner);
+insert into tasks(company_id, branch_id, title, created_by) values (:'cid', :'fbid', 'Last stock count', :owner) returning id as ltask \gset
+insert into memberships(id, company_id, user_id, status, branch_ids) values ('11111111-1111-0000-0000-000000000009', :'cid', '11111111-0000-0000-0000-000000000009', 'active', array[:'fbid']::uuid[]);
+select t.as_user(:mgr);
+select t.denied('a branch manager cannot close a branch', format($$select close_branch(%L)$$, :'fbid'));
+select t.as_user(:owner);
+select t.denied('closing with an open task is refused', format($$select close_branch(%L)$$, :'fbid'));
+update tasks set status = 'done' where id = :'ltask';
+select close_branch(:'fbid');
+select t.check('the branch is closed', (select status from branches where id = :'fbid') = 'closed');
+select t.check('the person limited to it is suspended', (select status from memberships where id = '11111111-1111-0000-0000-000000000009') = 'suspended');
+select t.check('...and their scope is NOT widened to the whole company', (select branch_ids from memberships where id = '11111111-1111-0000-0000-000000000009') = array[:'fbid']::uuid[]);
+select t.denied('closing twice', format($$select close_branch(%L)$$, :'fbid'));
+
 -- ============================================================ deletion after closure removes everything, in a fully populated company
 select t.as_user(:owner);
 select close_company(:'cid');

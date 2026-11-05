@@ -34,7 +34,12 @@ export async function currentSession(): Promise<SessionUser | null> {
 /** For pages and actions that need a fully signed-in user. */
 export async function requireUser(): Promise<SessionUser> {
   const s = await currentSession();
-  if (!s) redirect("/signin?expired=1");
+  if (!s) {
+    const had = !!(await cookies()).get(SESSION_COOKIE)?.value;   // a cookie that no longer works means the session ended
+    const path = (await headers()).get("x-nm-path") ?? "/";
+    const next = path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/signin") ? `next=${encodeURIComponent(path)}` : "";
+    redirect(`/signin?${[next, had ? "expired=1" : ""].filter(Boolean).join("&")}`);
+  }
   if (s.pending2fa) redirect("/2fa");
   return s;
 }

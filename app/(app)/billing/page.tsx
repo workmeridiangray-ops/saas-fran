@@ -27,11 +27,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
       plans: await db.q<PV>("select p.id plan_id, p.name, v.version, v.monthly_price_minor, v.currency, v.max_branches, v.max_users, v.storage_mb, v.modules from plans p join lateral (select * from plan_versions where plan_id = p.id order by version desc limit 1) v on true where p.is_public order by v.monthly_price_minor", []),
       sub: await db.one<{ plan_id: string; plan_version: number; status: string; current_period_end: string; pending_plan_id: string | null }>("select plan_id, plan_version, status, current_period_end, pending_plan_id from subscriptions where company_id = $1", [ctx.companyId]),
       cur: await db.one<PV>("select p.id plan_id, p.name, v.version, v.monthly_price_minor, v.currency, v.max_branches, v.max_users, v.storage_mb, v.modules from app.current_plan($1) v join plans p on p.id = v.plan_id", [ctx.companyId]),
-      usage: {
-        branches: await n("select count(*) n from branches where company_id = $1 and status <> 'closed'"),
-        users: await n("select count(*) n from memberships where company_id = $1 and status in ('active','invited')"),
-        storageMb: Math.ceil((await n("select coalesce(sum(size_bytes),0) n from attachments where company_id = $1")) / 1_048_576),
-      },
+      usage: await (async () => { const u = (await db.one<{ branches: number; users: number; storage_bytes: string }>("select * from public.company_usage($1)", [ctx.companyId]))!; return { branches: u.branches, users: u.users, storageMb: Math.ceil(Number(u.storage_bytes) / 1_048_576) }; })(),
       open: {
         purchasing: await n("select (select count(*) from requisitions where company_id = $1 and status in ('submitted','approved','ordered')) + (select count(*) from purchase_orders where company_id = $1 and status in ('sent','partially_received')) n"),
         inspections: await n("select count(*) n from findings where company_id = $1 and status <> 'verified'"),

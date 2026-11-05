@@ -1,25 +1,20 @@
 # Release plan
 
-## Included in the first commercial release (R1)
-Shared foundation: accounts and workspaces, onboarding, organisation and branches,
-tasks and approvals, SOPs and documents, inspections with corrective actions, training,
-purchasing requisition → receipt, tickets, reports, plan and billing.
+## Release 1: built in this repository
+Accounts and security (email confirmation, lockout, two-factor, reset, sessions), invitations, workspaces, onboarding and trial; branches with lifecycle and closure review; organisation; people, custom roles and branch scope; tasks; checklists with review; approvals with multi-step rules; purchasing through partial receipt; inspections with scoring, findings and independently verified corrective actions; SOPs with acknowledgements; training with quizzes and expiry; tickets; assets and licences; sales, royalty rules, statements and payment allocation; reports and CSV export; audit log; attachments; plans, invoices, renewals, suspension, company export, closure and scheduled deletion; platform admin; Docker deployment, CI, backup and restore.
 
-## Second release (R2)
-Franchise pipeline and agreements, opening projects, royalties and finance, assets and
-licences, stock ledger, configuration studio.
+## Needed before taking paying customers (not code in this repo)
+- Outbound email provider (`SMTP_URL`).
+- Payment collection: a gateway behind `BillingProvider`, or run on invoices and bank transfer.
+- Hosting, a domain with HTTPS, monitoring on `/api/health`, and the daily scheduler job.
+- Privacy policy, terms and a data-processing agreement reviewed by a lawyer; these are not provided.
+- A restore drill and an external security review before sensitive data goes in.
+
+## Release 2: not built
+Franchise applicant pipeline, agreements and renewals; opening projects; stock ledger and transfers; configuration studio (custom fields, forms, workflows, terminology); region and brand scoping in the People screen and on all records; saved views and column controls on tables; scheduled reports; integrations, webhooks and API credentials; supplier, contractor and external-auditor portals; SLA and escalation rules; shift rosters and leave; campaigns; SSO; object storage for large files.
 
 ## Separately priced extensions
-Industry modules, marketing campaigns, integrations (each named connector), offline
-inspection capture, e-signature and legal-document generation, batch/expiry tracking,
-video hosting and proctored exams, full payroll/biometric HR.
+Industry modules (print production, restaurant food-safety, education, retail, service jobs); offline inspection capture; e-signature and legal-document generation; payroll, biometric attendance and recruitment; video hosting and proctored exams; advertising and social publishing; a full customer CRM.
 
-## Not in scope (distinct products)
-Restaurant POS, school ERP, print-production software, retail billing, marketplace
-payouts, stored-value wallets, automated royalty collection (needs its own payment design).
-
-## Decisions still needed
-- Payment provider and tax handling for SaaS billing (and whether royalty collection is ever in scope).
-- Auth: Supabase Auth only, or SSO in R1.
-- Hosting region and data-residency promises per country.
-- Which industry template ships first.
+## Not planned (distinct products)
+Restaurant POS, school ERP, print-production software, retail billing, marketplace payouts, stored-value wallets, automated royalty collection.
