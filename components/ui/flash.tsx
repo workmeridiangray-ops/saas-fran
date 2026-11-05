@@ -28,3 +28,13 @@ export function PlanGate({ module }: { module: string }) {
     </div>
   );
 }
+
+export function ReadOnly() {
+  return (
+    <div role="status" className="mx-auto mt-6 max-w-form rounded-lg border border-line bg-surface p-4 text-center">
+      <h1 className="text-lg font-semibold">This workspace is read-only</h1>
+      <p className="mt-0.5 text-sm text-muted">There's an unpaid invoice. Nothing was lost: everything is still here to view and export. Pay the invoice and editing resumes straight away.</p>
+      <a href="/billing" className="mt-2 inline-flex min-h-touch items-center rounded-md bg-brand px-3 text-sm font-medium text-white">Go to plan & billing</a>
+    </div>
+  );
+}

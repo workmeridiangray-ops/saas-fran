@@ -289,3 +289,34 @@ describe("branch-timezone deadlines", () => {
     expect(zonedToIso("2026-11-05T09:00", "Asia/Kolkata")).toBe("2026-11-05T03:30:00.000Z");
   });
 });
+
+import { checkUpload } from "../files";
+describe("uploads", () => {
+  it("accepts allowed types and checks magic bytes", () => {
+    expect(checkUpload("proof.pdf", Uint8Array.from([0x25, 0x50, 0x44, 0x46, 1])).ok).toBe(true);
+    expect(checkUpload("note.txt", Uint8Array.from([104, 105])).ok).toBe(true);
+  });
+  it("rejects scripts, fakes, empty and oversized files", () => {
+    expect(checkUpload("run.exe", Uint8Array.from([1])).ok).toBe(false);
+    expect(checkUpload("page.html", Uint8Array.from([1])).ok).toBe(false);
+    expect(checkUpload("fake.png", Uint8Array.from([1, 2, 3])).ok).toBe(false);
+    expect(checkUpload("a.txt", new Uint8Array(0)).ok).toBe(false);
+    expect(checkUpload("big.txt", new Uint8Array(5 * 1024 * 1024 + 1)).ok).toBe(false);
+  });
+  it("sanitises the stored name", () => {
+    const r = checkUpload("../../etc/pass wd<script>.txt", Uint8Array.from([1]));
+    expect(r.ok && r.safeName.includes("/")).toBe(false);
+  });
+});
+
+import { parseItems } from "./inspection";
+describe("inspection template parsing", () => {
+  it("parses item, weight and critical", () => {
+    expect(parseItems("Clean | 2\nFire safety | 3 | critical\n\nUniform")).toEqual([
+      { id: "i1", text: "Clean", weight: 2, critical: false }, { id: "i2", text: "Fire safety", weight: 3, critical: true }, { id: "i3", text: "Uniform", weight: 1, critical: false }]);
+  });
+  it("rejects bad weights with the line number", () => {
+    expect(() => parseItems("ok | 2\nbad | 9")).toThrow(/Line 2/);
+    expect(() => parseItems("x | 1.5")).toThrow(/Line 1/);
+  });
+});

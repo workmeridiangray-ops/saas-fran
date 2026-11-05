@@ -18,3 +18,14 @@ export function scoreInspection(items: TemplateItem[], answers: Record<string, A
 }
 export const severityOf = (i: TemplateItem): "minor" | "major" | "critical" =>
   i.critical ? "critical" : i.weight >= 3 ? "major" : "minor";
+
+/** One line per item: "Text | weight | critical". Weight 1-5, "critical" optional. */
+export function parseItems(text: string): TemplateItem[] {
+  return text.split("\n").map((l) => l.trim()).filter(Boolean).map((line, i) => {
+    const [t, w, c] = line.split("|").map((x) => x.trim());
+    const weight = Number(w || "1");
+    if (!t || !(weight >= 1 && weight <= 5) || !Number.isInteger(weight)) throw new Error(`Line ${i + 1}: use “Item text | weight 1-5 | critical (optional)”.`);
+    return { id: `i${i + 1}`, text: t, weight, critical: /^crit/i.test(c ?? "") };
+  });
+}
+

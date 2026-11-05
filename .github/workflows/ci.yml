@@ -1,0 +1,40 @@
+name: CI
+on: { push: { branches: ["**"] }, pull_request: {} }
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 10
+    env: { PGHOST: localhost, PGUSER: postgres, PGPASSWORD: postgres }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Database tests (isolation, workflows, billing)
+        run: bash scripts/db-test.sh
+      - name: Build
+        run: npm run build
+        env: { DATABASE_URL: "postgres://postgres:postgres@localhost:5432/ci" }
+      - name: End-to-end flows
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/ci
+          APP_URL: http://127.0.0.1:3100
+          CRON_SECRET: test-cron-secret-0123456789
+        run: |
+          createdb ci
+          bash scripts/migrate.sh
+          printf 'DATABASE_URL=%s\nAPP_URL=%s\nCRON_SECRET=%s\n' "$DATABASE_URL" "$APP_URL" "$CRON_SECRET" > .env.local
+          npm i --no-save playwright && npx playwright install --with-deps chromium
+          (PORT=3100 HOSTNAME_BIND=127.0.0.1 bash scripts/start-standalone.sh > server.log 2>&1 &)
+          npx --yes wait-on http://127.0.0.1:3100/api/health
+          bash tests/e2e/run-all.sh
+      - if: failure()
+        run: tail -100 server.log || true

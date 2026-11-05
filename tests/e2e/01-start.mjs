@@ -17,8 +17,8 @@ await step("wrong password is refused with a neutral message", async () => {
 await step("create the workspace", async () => {
   await page.getByLabel("Company name").fill("Flow Foods"); await page.getByRole("button", { name: "Create workspace" }).click();
   await page.waitForURL((u) => u.pathname === "/");
-  expect(await page.getByText("Getting started").count() > 0, "no first-use guidance");
-  expect(await page.getByText("Your workspace is ready").count() > 0, "no confirmation");
+  await page.getByText("Getting started").waitFor({ timeout: 8000 });
+  await page.getByText("Your workspace is ready").waitFor({ timeout: 8000 });
 });
 await step("trial, roles and templates were seeded", async () => {
   const [r] = await q("select (select count(*) from roles where company_id=c.id)::int roles, s.status from companies c join subscriptions s on s.company_id=c.id where c.name='Flow Foods'");
@@ -27,11 +27,11 @@ await step("trial, roles and templates were seeded", async () => {
 await step("add the first branch", async () => {
   await page.goto(BASE + "/branches/new"); await page.getByLabel("Branch name").fill("Downtown"); await page.getByLabel("Code").fill("DT1");
   await page.getByRole("button", { name: "Add branch" }).click(); await page.waitForURL(/\/branches\/[0-9a-f-]{36}/);
-  expect(await page.getByRole("heading", { name: "Downtown" }).count() > 0, "branch page missing");
+  await page.getByRole("heading", { name: "Downtown" }).waitFor({ timeout: 8000 });
 });
 await step("the branch appears in the list and search finds it", async () => {
-  await page.goto(BASE + "/branches?q=downt"); expect(await page.getByRole("link", { name: "Downtown" }).count() > 0, "not listed");
-  await page.goto(BASE + "/branches?q=zzz"); expect(await page.getByText("No branches match").count() > 0, "no empty state");
+  await page.goto(BASE + "/branches?q=downt"); await page.getByRole("link", { name: "Downtown" }).waitFor({ timeout: 8000 });
+  await page.goto(BASE + "/branches?q=zzz"); await page.getByText("No branches match").waitFor({ timeout: 8000 });
 });
 await step("duplicate branch code gives a clear error and saves nothing", async () => {
   await page.goto(BASE + "/branches/new"); await page.getByLabel("Branch name").fill("Another"); await page.getByLabel("Code").fill("DT1");

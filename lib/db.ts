@@ -6,10 +6,13 @@ export const pool: Pool = (g.__pool ??= new Pool({ connectionString: process.env
 export interface Db {
   q<T extends QueryResultRow = Record<string, any>>(sql: string, params?: unknown[]): Promise<T[]>;
   one<T extends QueryResultRow = Record<string, any>>(sql: string, params?: unknown[]): Promise<T | null>;
+  /** Rows as arrays, in column order. Use when column names can collide (exports). */
+  qa(sql: string, params?: unknown[]): Promise<unknown[][]>;
 }
 const wrap = (c: PoolClient): Db => ({
   async q(sql, params) { return (await c.query(sql, params as unknown[])).rows as never; },
   async one(sql, params) { return ((await c.query(sql, params as unknown[])).rows[0] ?? null) as never; },
+  async qa(sql, params) { return (await c.query({ text: sql, values: params as unknown[], rowMode: "array" })).rows; },
 });
 
 /**

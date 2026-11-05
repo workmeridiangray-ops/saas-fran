@@ -1,57 +1,42 @@
 # Screen register
 
-Links each screen to its role, workflow, permissions, data and acceptance criteria
-(brief §27). **Status:** `built` = runs in this repo on sample data; `planned` = specified only.
-**Release:** R1 first commercial release · R2 second release · EXT separately priced extension.
+Each screen with its route, who can use it, the workflow it belongs to, the permission it needs, the tables behind it and what "done" means. **Status** is what exists in this repository and is covered by the end-to-end suite unless stated.
+Permissions are `resource:action` from `lib/rules/permissions.ts`. A role is a bundle of these; people can also be scoped to branches.
 
-Permission notation is `resource:action` using `lib/rules/permissions.ts`.
-Data refers to tables in `supabase/migrations/`; `(new)` means a table that does not exist yet.
+## Built
 
-## Built screens (sample data, no database wired)
+| Area | Screens (route) | Permission | Data | Acceptance (summary) |
+|---|---|---|---|---|
+| Account | Sign up `/signup`, confirm email `/verify`, sign in `/signin`, two-factor `/2fa`, forgot/reset `/forgot` `/reset`, accept invitation `/invite/[token]`, profile/security/sessions `/account`, workspaces `/workspaces`, create company `/onboarding` | none (own account) | `identity.*`, `profiles`, `memberships` | Same response whether or not an address is registered; 5 failed attempts lock 15 min; reset links are single-use and sign out other devices; recovery codes work once |
+| Command centre | `/` | any member | many | Leads with overdue work, approvals, expiries; every item links to its records; first-use checklist when empty |
+| Branches | List `/branches`, add `/branches/new`, record `/branches/[id]`, close `/branches/[id]/close` | `branches:*` | `branches`, `branch_history` | Search/filter/sort in the URL; plan limit explained with upgrade link; closing is blocked until orders, dues, assets and tasks are resolved, access removed last |
+| Organisation | `/organisation` | `organisation:*`, `franchise:*` | brands, regions, legal entities, departments, partners | Everything optional; archive, never delete |
+| People & access | `/people`, roles `/people/roles` | `users:*` | `memberships`, `roles`, `invitations` | Invite by email with role and branch scope; custom roles from a permission grid; can't edit or suspend your own access |
+| Tasks | `/tasks`, `/tasks/new`, `/tasks/[id]` | `tasks:*` | `tasks`, `task_comments` | Deadlines entered in the branch's time zone; proof required when flagged |
+| Checklists | `/checklists`, `/checklists/[branch]/[template]` | `tasks:*` | `checklist_templates`, `checklist_runs` | One run per branch/template/day (branch's own date); required items block submit; sent back with a reason, resubmit |
+| Approvals | `/approvals` (inbox, mine, decided), `?tab=rules` | `approvals:*` | `approval_rules`, `approval_requests`, `approval_decisions` | Request, lines, evidence and history on one screen; no self-approval, no over-limit, steps in order; rejection needs a reason |
+| Purchasing | `/purchasing` (requisitions, orders, suppliers & items), `/purchasing/new`, `/purchasing/[id]`, `/purchasing/orders/[id]` | `purchasing:*` | suppliers, catalogue, requisitions, POs, receipts | Exact integer totals; partial receipts; over-receipt refused; rejected goods need a reason |
+| Inspections | `/inspections` (inspections, findings, actions, templates), `/inspections/new`, `/inspections/[id]`, `/inspections/findings/[id]` | `inspections:*`, `actions:*` | templates, inspections, findings, corrective actions | Weighted score, critical failure caps at 70%; failed items need comments; fixes need proof and independent verification; rejection reopens |
+| Knowledge | `/knowledge`, `/knowledge/new`, `/knowledge/[id]` | `documents:*` | documents, versions, acknowledgements | Edits create drafts; publishing notifies everyone and replaces the live version; acknowledgement tracker for managers |
+| Training | `/training`, `/training/new`, `/training/[id]` | `training:*` | courses, enrolments | Answer key never sent to learners; attempts limited; expiry; reassign restarts attempts |
+| Tickets | `/tickets`, `/tickets/new`, `/tickets/[id]` | `tickets:*` | tickets, comments | Internal, customer complaint and incident kept as separate types; resolution required to close |
+| Assets & licences | `/assets` (assets, licences) | `assets:*` | assets, licences | Expiry flags at 30 days; disposal needs approval permission |
+| Sales & royalties | `/royalties` (statements, sales, payments, rules), `/royalties/[id]` | `royalties:*`, `sales:*` | rules, sales reports, statements, partner payments, allocations | Dated rule versions can't overlap; preparer can't approve; issued statements are immutable; payments apply oldest-first and never beyond what's owed |
+| Reports | `/reports`, `/api/export/[kind]` | `reports:*`, `<area>:export` | views over the above | CSV with formula-injection guard; permission-aware; full company JSON export for owners |
+| Audit log | `/audit` | `organisation:configure` | `audit_log` | Append-only, field names only |
+| Notifications, search | `/notifications`, `/search` | any member | notifications + record tables | Search only returns what you can see |
+| Plan & billing | `/billing` | `billing:*` | plans, subscriptions, invoices | Over-limit explained, nothing deleted; modules with unresolved work stay usable; scheduled to renewal; issued invoices immutable; closure and export |
+| Platform admin | `/platform`, `/platform/companies`, `/platform/companies/[id]`, `/platform/invoices`, `/platform/plans` | platform staff | all (service access) | Suspend/reactivate with a recorded reason; versioned plans; mark invoices paid; every action audited under the operator's id |
 
-| Screen | Route | Roles | Workflow | Permissions | Data | Acceptance criteria | Status |
-|---|---|---|---|---|---|---|---|
-| Command centre | `/` | all company roles | Triage: attention list, decisions waiting, selected metrics | `tasks:view`, `approvals:view` | branches, approvals (new) | Leads with exceptions and approvals; each metric/alert links to its records; shows last-updated time and metric definition; works at 390px without horizontal scroll | built |
-| Branches | `/branches` | owner, brand head, regional, branch manager | Find, filter, sort, open record | `branches:view`; create needs `branches:create` | `branches`, `branch_history` | Search + status filter + sort kept in URL; "no results" state with clear-filters; Add disabled with reason when plan limit reached; status shown as text + icon | built |
-| Approvals | `/approvals` | anyone with `approvals:approve` | Review request, evidence, impact, prior decisions → decide | `approvals:approve`, limit via `approval_limit_minor` | approvals (new) | Request, evidence, impact, history and decision are on one screen; a person cannot approve their own request or above their limit; reject needs a reason | built (actions not wired) |
-| Plan & billing | `/billing` | owner, billing contact | Compare plans → validate limits → confirm | `billing:view`, `billing:configure` | `plans`, `plan_versions`, `subscriptions` | Over-limit is explained, never deletes; modules with unresolved work stay usable to finish; takes effect at renewal; past invoices unchanged | built (confirm not wired) |
-| Close branch | `/branches/[code]/close` | owner, regional | Outstanding-work review → access removal last | `branches:archive` | `branches` + orders/stock/dues/assets (new) | Close is disabled until orders, stock, dues, assets, integrations, tasks are resolved; access removal listed per person; progress is saved | built (close not wired) |
-| Workspace selector | `/workspaces` | any user in 2+ companies | Explicit switch | none (own memberships) | `memberships` | Switch is explicit; never merges data; offers "Request access" | built |
-| Planned-screen placeholder | `/m/[slug]` | n/a | Stand-in for every unbuilt nav item | n/a | n/a | Says what it is, which release, and that nothing was lost | built |
-
-## Planned screens by module
-
-| Module (brief §) | Key screens | Primary roles | Core permissions | Core data (new) | Acceptance headline | Release |
-|---|---|---|---|---|---|---|
-| Auth & accounts (4) | sign in, 2FA, recovery, invitation, access request, sessions | all | n/a | Supabase Auth, `invitations` | Reset and revocation work; org names are not discoverable | R1 |
-| Onboarding (5) | checklist, business profile, first branch, invite team, activate | owner | `organisation:configure` | `onboarding_progress` | Resume later; sample data flagged; flow 1 of design acceptance | R1 |
-| Platform admin (6) | company directory, plans, invoices, support, audit | platform staff | platform roles | `platform_invoices`, `incidents` | Support access is time-limited and audited (schema done) | R1 |
-| Org & branches (8) | org tree, brand/region/entity, branch profile, transfer, suspend | owner, admin | `organisation:*`, `branches:*` | extend `branches` | History preserved on move (schema done) | R1 |
-| Tasks & approvals (11) | checklists, tasks, kanban, approval inbox, delegation, escalation | branch manager, employee | `tasks:*`, `approvals:*` | `tasks`, `checklists`, `approval_rules` | Branch-timezone deadlines; reject needs reason | R1 |
-| SOPs & documents (12) | library, reader, editor, acknowledgements | all | `documents:*` | `documents`, `document_versions` | Revision can trigger acknowledgement tasks | R1 |
-| Inspections (13) | templates, conduct, findings, corrective actions, verification | inspector, manager | `inspections:*` | `inspections`, `findings`, `corrective_actions` | Flow 2: finding → action → independent verification | R1 |
-| Training (14) | catalogue, lesson player, quiz, completion, certificates | all | `training:*` | `courses`, `enrolments` | Pass marks, attempts, expiry | R1 |
-| Purchasing (16) | requisition, approval, PO, goods receipt, discrepancy | branch manager, purchasing | `purchasing:*` | `requisitions`, `purchase_orders`, `receipts` | Flow 3: request → approval → order → partial receipt | R1 |
-| Tickets & incidents (19) | tickets, complaints, incidents, SLA | all | `tickets:*` | `tickets` | Internal, customer and platform support kept separate | R1 |
-| Reports (21) | library, branch comparison, scheduled, exports | managers | `reports:view`, `reports:export` | views over core tables | No cross-company benchmarks | R1 |
-| Franchise pipeline (9) | enquiry, applicants, territory, agreements, renewals | franchise team | `franchise:*` | `applicants`, `agreements` | Prospect never confused with active partner | R2 |
-| Opening projects (10) | project, milestones, readiness, launch approval | project lead | `projects:*` | `projects` | Same task engine as daily ops | R2 |
-| Royalties & finance (17) | rules, preview, statement, allocation, ageing | finance | `royalties:*`, `sales:*` | `royalty_rules`, `statements`, `ledger_entries` | Flow 4; SaaS and royalty ledgers never mixed (rules done) | R2 |
-| Assets & licences (20) | register, work orders, warranties, licence expiry | manager | `assets:*` | `assets`, `work_orders` | Downtime tracked | R2 |
-| Inventory (16) | stock ledger, transfer, count, wastage | branch, purchasing | `inventory:*` | `stock_movements` | Batch/expiry is an extension | R2 |
-| Configuration studio (22) | forms, workflows, custom fields, versions | admin | `studio:configure` | `form_versions` | Publishing never corrupts existing submissions | R2 |
-| Marketing (18) | campaigns, assets, proof of execution | brand team | `marketing:*` | `campaigns` | Central distribution, local evidence | EXT |
-| Integrations (23) | marketplace, mapping, sync history, webhooks | admin | `integrations:*` | `integrations`, `sync_runs` | One scope per named connector | EXT |
-| Industry modules (24) | restaurant, print, retail, education, service | varies | per module | per module | Inherit shared permissions/tasks/reports | EXT |
-| Offline inspections (13) | capture, sync | inspector | `inspections:*` | sync queue | Defined sync and conflict rules | EXT |
+## Not built
+Franchise applicant pipeline and agreements; opening projects; stock ledger; configuration studio (custom fields, form and workflow builders); integrations, webhooks and APIs; supplier, contractor and external-auditor portals; offline inspection capture; shift rosters and leave; campaign management; major-incident workspace and SLA configuration; saved views and column controls on tables; SSO; payment gateway. See `docs/release-plan.md`.
 
 ## Design acceptance flows
-
-| # | Flow | Rules proven | Screens built |
-|---|---|---|---|
-| 1 | Registration → setup → first branch → invite | `create_company()` creates owner membership (db test) | none yet |
-| 2 | Inspection → finding → action → verification | none yet | none yet |
-| 3 | Purchase request → approval → order → partial receipt | approval routing, limits (unit tests) | approvals (partial) |
-| 4 | Royalty calc → review → statement → allocation | rule selection, minimums, lifecycle, allocation (unit tests) | none yet |
-| 5 | Plan change → limit validation → billing confirmation | `evaluatePlanChange` (unit tests) | billing |
-| 6 | Branch closure → outstanding work → access removal | `closureChecklist`, `accessRemovalPlan` (unit tests) | close branch |
+| # | Flow | Covered by |
+|---|---|---|
+| 1 | Registration → setup → first branch → staff invitation | `tests/e2e/01-start.mjs`, `02-purchasing.mjs` (invite) |
+| 2 | Inspection → finding → corrective action → verification | `tests/e2e/03-inspection.mjs`, `tests/db/workflows.sql` |
+| 3 | Purchase request → approval → order → partial receipt | `tests/e2e/02-purchasing.mjs` |
+| 4 | Royalty calculation → review → statement → payment allocation | `tests/e2e/04-royalties.mjs` |
+| 5 | Subscription change → limit validation → billing confirmation | `tests/e2e/05-billing.mjs` |
+| 6 | Branch closure → outstanding-work review → access removal | `tests/db/*` (closure rules), `tests/e2e/07` covers the screen; see note |

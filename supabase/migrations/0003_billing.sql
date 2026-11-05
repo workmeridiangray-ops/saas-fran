@@ -199,7 +199,7 @@ begin
     {"resource":"assets","actions":["view","create","edit"]},{"resource":"reports","actions":["view","export"]},{"resource":"people","actions":["view"]}]') returning id into mgr_r;
   insert into roles(company_id, name, grants) values
     (cid, 'Finance', '[{"resource":"royalties","actions":["view","create","edit","approve","pay"]},{"resource":"sales","actions":["view"]},
-      {"resource":"billing","actions":["view"]},{"resource":"approvals","actions":["view","approve"]},{"resource":"reports","actions":["view","export"]},{"resource":"branches","actions":["view"]}]'),
+      {"resource":"billing","actions":["view"]},{"resource":"approvals","actions":["view","approve"]},{"resource":"reports","actions":["view","export"]},{"resource":"branches","actions":["view"]},{"resource":"franchise","actions":["view"]}]'),
     (cid, 'Auditor / inspector', '[{"resource":"inspections","actions":["view","create","edit","approve"]},{"resource":"actions","actions":["view","create","edit"]},{"resource":"branches","actions":["view"]},{"resource":"tasks","actions":["view","create"]}]'),
     (cid, 'Employee', '[{"resource":"tasks","actions":["view","edit"],"ownOnly":true},{"resource":"training","actions":["view"]},{"resource":"documents","actions":["view"]},{"resource":"tickets","actions":["view","create"]}]');
 

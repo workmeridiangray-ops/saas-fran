@@ -183,3 +183,27 @@ select t.check('later plan change waits for renewal', request_plan_change(:'cid'
 select t.check('...and is stored as pending', (select pending_plan_id from subscriptions where company_id = :'cid') = 'starter');
 
 select 'workflow tests passed' as result;
+
+-- ============================================================ attachments follow the parent's visibility
+select t.as_user(:owner);
+insert into attachments(company_id, subject_table, subject_id, filename, content_type, size_bytes, data, uploaded_by)
+  values (:'cid', 'tasks', (select id from tasks limit 1), 'proof.txt', 'text/plain', 5, 'hello', :owner) returning id as att \gset
+select t.check('owner reads the attachment', (select count(*) from attachments where id = :'att') = 1);
+select t.denied('attach to a table that is not allowed', format($$insert into attachments(company_id, subject_table, subject_id, filename, content_type, size_bytes, data, uploaded_by) values (%L,'memberships',gen_random_uuid(),'x','text/plain',1,'x',%L)$$, :'cid', :'owner'));
+select t.denied('size must match content', format($$insert into attachments(company_id, subject_table, subject_id, filename, content_type, size_bytes, data, uploaded_by) values (%L,'tasks',(select id from tasks limit 1),'x','text/plain',9,'x',%L)$$, :'cid', :'owner'));
+select t.as_user('99999999-0000-0000-0000-000000000009');
+select t.check('a stranger cannot read it', (select count(*) from attachments) = 0);
+select t.as_user(:owner);
+select 'attachment tests passed' as result;
+
+-- ============================================================ deletion after closure removes everything, in a fully populated company
+select t.as_user(:owner);
+select close_company(:'cid');
+select t.as_user(null);
+update companies set closing_at = now() - interval '120 days' where id = :'cid';
+select t.check('a fully populated company purges cleanly', app.purge_closed_companies(90) = 1);
+select t.check('no tenant rows remain',
+  (select count(*) from branches where company_id = :'cid') + (select count(*) from statements where company_id = :'cid') + (select count(*) from findings where company_id = :'cid')
+  + (select count(*) from po_lines where company_id = :'cid') + (select count(*) from memberships where company_id = :'cid') + (select count(*) from attachments where company_id = :'cid') = 0);
+select t.check('its invoices were retained', (select count(*) from retained_invoices where company_name = 'Flow Co') >= 1);
+select 'purge tests passed' as result;

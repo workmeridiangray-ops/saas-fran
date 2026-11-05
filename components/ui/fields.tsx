@@ -1,7 +1,9 @@
+import { useId } from "react";
+
 const input = "min-h-touch w-full rounded-md border border-line-strong bg-surface px-1.5 text-sm placeholder:text-muted";
 
 export function Field({ label, name, hint, error, required, ...rest }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; name: string; hint?: string; error?: string }) {
-  const id = `f-${name}`;
+  const id = `f-${name}-${useId().replace(/:/g, "")}`;
   return (
     <div>
       <label htmlFor={id} className="mb-0.5 block text-sm font-medium">{label}{required && <span className="text-danger"> *</span>}</label>
@@ -12,7 +14,7 @@ export function Field({ label, name, hint, error, required, ...rest }: React.Inp
   );
 }
 export function TextArea({ label, name, hint, rows = 3, ...rest }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; name: string; hint?: string }) {
-  const id = `f-${name}`;
+  const id = `f-${name}-${useId().replace(/:/g, "")}`;
   return (
     <div>
       <label htmlFor={id} className="mb-0.5 block text-sm font-medium">{label}</label>
@@ -24,7 +26,7 @@ export function TextArea({ label, name, hint, rows = 3, ...rest }: React.Textare
 export function Select({ label, name, options, hint, placeholder, ...rest }: React.SelectHTMLAttributes<HTMLSelectElement> & {
   label: string; name: string; options: { value: string; label: string }[]; hint?: string; placeholder?: string;
 }) {
-  const id = `f-${name}`;
+  const id = `f-${name}-${useId().replace(/:/g, "")}`;
   return (
     <div>
       <label htmlFor={id} className="mb-0.5 block text-sm font-medium">{label}</label>
