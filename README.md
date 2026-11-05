@@ -11,7 +11,7 @@ Scope and design direction: [`docs/project-brief.md`](docs/project-brief.md) · 
 1. **Email.** Set `SMTP_URL`. Without it nobody receives confirmation, reset or invitation emails.
 2. **Card payments, if you want them.** Billing ships as invoice + manual "mark paid". A gateway needs your account; see "Payments" in the operations guide.
 
-**Also built:** franchise pipeline with agreements, fees, renewals, transfer and a public enquiry form; opening projects with industry templates; a stock ledger; region and brand scoping; ticket SLAs with escalation; API keys, a read API and signed webhooks; rosters and leave; saved table views; scheduled reports with export history.
+**Also built:** a configuration studio (your own fields on branches, tasks and tickets, validated in the database, and renamable terms such as Branch to Store); a custom report builder (pick columns, filters and sort, preview, save, download); Spanish for menus, the shell, sign-in and the command centre; franchise pipeline with agreements, fees, renewals, transfer and a public enquiry form; opening projects with industry templates; a stock ledger; region and brand scoping; ticket SLAs with escalation; API keys, a read API and signed webhooks; rosters and leave; saved table views; scheduled reports with export history.
 
 **Not built:** see [Not built yet](#not-built-yet) below for the full list. Read it before promising anything to a customer.
 
@@ -50,15 +50,15 @@ These parts of the original brief are **not in the code**. Nothing here is half-
 
 | Area | State | What starting it involves |
 |---|---|---|
-| Single sign-on (SAML / OIDC) | Not built. Sign-in is email + password + optional TOTP. | New identity-provider config per company, a callback route, and account linking in the `identity` schema. |
+| Single sign-on (SAML / OIDC) | Not built. Sign-in is email + password + optional TOTP. | New identity-provider config per company, a callback route, and account linking in the `identity` schema. Needs a real identity provider to test against. |
 | Card payment gateway | Not built. Billing is invoices plus manual "mark paid" through the `BillingProvider` interface. | Needs your gateway account and keys. Implement the interface, add its webhook, then switch the provider. |
 | Offline inspections | Not built. Inspections need a connection. | Local draft storage, a sync queue, and conflict handling against the scoring rules. |
-| Supplier, contractor and auditor portals | Not built. Only company members and franchise applicants (public enquiry form) can reach the app. | An external-user type with its own narrow role and RLS policies. |
-| Configuration studio | Not built: custom fields, custom forms, workflow builder, terminology renaming. Roles and checklists are configurable; the rest is fixed. | A field-definition store, rendering in forms and tables, and validation. |
-| Custom report builder, per-user column pickers | Not built. Reports are the fixed set in `lib/reports.ts`; saved views remember filters only. | A query model over allowed tables that still respects RLS. |
+| Supplier, contractor and auditor portals | Not built. Only company members and franchise applicants (public enquiry form) can reach the app. Outside people can be given a narrow role as members, but there is no separate portal. | An external-user type with its own simplified screens and RLS policies. |
+| Studio: custom forms and workflow builder | Not built. Custom **fields** (branches, tasks, tickets) and **terminology** (branch, task, ticket) are built; custom record types, form layouts and workflow editing are not. | Definition store for record types and a rules/workflow engine. |
+| Report builder: more datasets, joins, charts | Partly built. The builder covers branches, tasks and tickets (with custom fields); other datasets, joins across tables and charts are not built. Scheduled reports still use the fixed list. | Extend the whitelist in `lib/rules/report-builder.ts`; scheduling saved custom reports is not wired. |
 | Campaigns / marketing | Not built. | Out of scope so far. |
 | Industry modules beyond the opening templates | Not built. Only opening checklists per industry exist (`lib/templates/opening.ts`). | Per-industry data models and screens. |
-| Multi-language | Not built. English only; money and dates follow the company's currency and time zone. | Extract strings, add a locale per user, and translate emails. |
+| Multi-language | Partly built. Spanish covers menus, the app shell, sign-in and the command centre; every other screen, email and error message is English. Adding a language means adding a file like `lib/i18n-es.ts`. | Translate the remaining screens by wrapping text in `t()`; translate emails. |
 | Payroll and biometrics | Not built. Rosters and leave exist; pay does not. | A separate, compliance-heavy project. |
 
 Also absent, by design for now: realtime updates and object storage for files (see Known limitations). The release plan in [`docs/release-plan.md`](docs/release-plan.md) tracks the same list.

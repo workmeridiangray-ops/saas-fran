@@ -32,11 +32,14 @@ Permissions are `resource:action` from `lib/rules/permissions.ts`. A role is a b
 | Roster & leave | `/roster` (week, my leave, leave to decide) | `people:*` | shifts, leave requests | No overlapping shifts, none during approved leave, leave can't be approved over a shift; employees see only their own |
 | Integrations | `/integrations`, `/api/v1/*`, `/api/cron/webhooks` | `integrations:*` | API keys (hashed), webhooks, deliveries | Secrets shown once and never readable again; signed webhooks with timestamps; retries with backoff and a log; private-network targets refused; read-only API with scopes and a rate limit |
 | Reports (extended) | schedules, export history on `/reports` | `reports:*` | schedules, runs | Scheduled CSV runs as the person who set it up and stops if they lose access; every export is logged |
+| Configuration studio | `/studio` | `studio:*` (members can read definitions) | custom fields, terminology | Fields are typed and validated in the database; a field's key and type never change, options can only be added; archiving hides a field but keeps its values; renamed terms apply to menus and page titles |
+| Report builder | `/reports/builder`, `/api/export/custom/[id]` | `reports:*` plus export on the dataset | custom reports | SQL is built only from a whitelist of columns and filters; runs as the person, so row scope applies; custom fields appear as columns |
+| Language | switch on sign-in and in the sidebar | any | cookie only | Spanish for menus, shell, sign-in and the command centre; other text stays English |
 | Table views | saved views on branches, tasks and tickets; comfortable/compact rows | any member | saved views | Private to you |
 | Platform admin | `/platform`, `/platform/companies`, `/platform/companies/[id]`, `/platform/invoices`, `/platform/plans` | platform staff | all (service access) | Suspend/reactivate with a recorded reason; versioned plans; mark invoices paid; every action audited under the operator's id |
 
 ## Not built
-Single sign-on; a card payment gateway; offline inspection capture; supplier, contractor and external-auditor portals; the configuration studio (custom fields, form and workflow builders, terminology); a custom report builder and per-user column pickers; campaign management; payroll and biometric attendance; industry modules beyond the opening templates (print-job tracking, food-safety logs, student services and so on); multi-language interface. See `docs/release-plan.md`.
+Single sign-on; a card payment gateway; offline inspection capture; supplier, contractor and external-auditor portals; studio custom forms and workflow builder; report builder datasets beyond branches, tasks and tickets, joins, charts and scheduling of saved reports; campaign management; payroll and biometric attendance; industry modules beyond the opening templates; Spanish beyond menus, shell, sign-in and the command centre. See `docs/release-plan.md`.
 
 ## Design acceptance flows
 | # | Flow | Covered by |
