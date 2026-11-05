@@ -13,7 +13,7 @@ Scope and design direction: [`docs/project-brief.md`](docs/project-brief.md) · 
 
 **Also built:** franchise pipeline with agreements, fees, renewals, transfer and a public enquiry form; opening projects with industry templates; a stock ledger; region and brand scoping; ticket SLAs with escalation; API keys, a read API and signed webhooks; rosters and leave; saved table views; scheduled reports with export history.
 
-**Not built** (see the release plan): single sign-on, a card payment gateway, offline inspection capture, supplier and contractor portals, the configuration studio (custom fields and form/workflow builders), a custom report builder, campaigns, and industry modules beyond the opening templates. The interface is English only; money and dates follow the company's currency and time zone.
+**Not built:** see [Not built yet](#not-built-yet) below for the full list. Read it before promising anything to a customer.
 
 Screens: [dashboard](docs/screens/dashboard.png) · [approvals](docs/screens/approvals.png) · [orders](docs/screens/purchasing-order.png) · [billing](docs/screens/billing.png) · [roles](docs/screens/roles.png) · [phone](docs/screens/dashboard-phone.png)
 
@@ -44,6 +44,24 @@ The end-to-end suite covers each acceptance flow (registration → first branch 
 - Business rules (permissions, approval routing, plan limits, royalties, scoring, closure) are small pure modules in `lib/rules` with their own tests.
 - Money is integer minor units everywhere. SaaS invoices and franchise royalties are separate ledgers that can't be combined.
 - Authentication is built in (`identity` schema, never visible to row-level-security roles). Mail goes through `identity.outbox`.
+
+## Not built yet
+These parts of the original brief are **not in the code**. Nothing here is half-wired; there is no screen, table or setting for them unless noted.
+
+| Area | State | What starting it involves |
+|---|---|---|
+| Single sign-on (SAML / OIDC) | Not built. Sign-in is email + password + optional TOTP. | New identity-provider config per company, a callback route, and account linking in the `identity` schema. |
+| Card payment gateway | Not built. Billing is invoices plus manual "mark paid" through the `BillingProvider` interface. | Needs your gateway account and keys. Implement the interface, add its webhook, then switch the provider. |
+| Offline inspections | Not built. Inspections need a connection. | Local draft storage, a sync queue, and conflict handling against the scoring rules. |
+| Supplier, contractor and auditor portals | Not built. Only company members and franchise applicants (public enquiry form) can reach the app. | An external-user type with its own narrow role and RLS policies. |
+| Configuration studio | Not built: custom fields, custom forms, workflow builder, terminology renaming. Roles and checklists are configurable; the rest is fixed. | A field-definition store, rendering in forms and tables, and validation. |
+| Custom report builder, per-user column pickers | Not built. Reports are the fixed set in `lib/reports.ts`; saved views remember filters only. | A query model over allowed tables that still respects RLS. |
+| Campaigns / marketing | Not built. | Out of scope so far. |
+| Industry modules beyond the opening templates | Not built. Only opening checklists per industry exist (`lib/templates/opening.ts`). | Per-industry data models and screens. |
+| Multi-language | Not built. English only; money and dates follow the company's currency and time zone. | Extract strings, add a locale per user, and translate emails. |
+| Payroll and biometrics | Not built. Rosters and leave exist; pay does not. | A separate, compliance-heavy project. |
+
+Also absent, by design for now: realtime updates and object storage for files (see Known limitations). The release plan in [`docs/release-plan.md`](docs/release-plan.md) tracks the same list.
 
 ## Known limitations
 - Single region, single database. No read replicas or sharding.
