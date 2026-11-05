@@ -4,6 +4,8 @@ import { requireCtx } from "@/lib/ctx";
 import { guard } from "@/lib/guard";
 import { PageHeader, Panel, StateMessage, Status, TableWrap, Td, Th } from "@/components/ui";
 import { addSchedule, removeSchedule } from "./actions";
+import { deleteCustomReport } from "./custom-actions";
+import { DATASETS, isDataset } from "@/lib/rules/report-builder";
 import { Field, FormCard, Select } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/forms";
 import { Flash } from "@/components/ui/flash";
@@ -26,6 +28,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
        (select count(*) from findings f where f.branch_id = b.id and f.status <> 'verified') open_findings,
        (select count(*) from tickets k where k.branch_id = b.id and k.status in ('open','in_progress')) open_tickets
      from branches b where b.company_id = $1 and b.status <> 'closed' order by b.name`, [ctx.companyId]));
+  const mine = await asUser(ctx.user.id, (db) => db.q<{ id: string; name: string; dataset: string; columns: string[] }>("select id, name, dataset, columns from custom_reports where company_id = $1 order by name", [ctx.companyId]));
   const hist = await asUser(ctx.user.id, async (db) => ({
     schedules: await db.q<{ id: string; kind: string; frequency: string; weekday: number | null; recipients: string[]; active: boolean; last_run_at: string | null }>("select id, kind, frequency, weekday, recipients, active, last_run_at from report_schedules where company_id = $1 order by created_at", [ctx.companyId]),
     runs: await db.q<{ id: string; kind: string; trigger: string; row_count: number; status: string; detail: string | null; at: string; who: string | null }>("select r.id, r.kind, r.trigger, r.row_count, r.status, r.detail, r.at, coalesce(nullif(p.display_name,''), p.email) who from report_runs r left join profiles p on p.id = r.run_by where r.company_id = $1 order by r.id desc limit 25", [ctx.companyId]),
@@ -44,6 +47,12 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
       <div className="mt-4 max-w-prose"><Panel title="Export data (CSV)">
         <ul className="grid gap-1 sm:grid-cols-2">{EXPORTS.filter(([, , res]) => canExport(res)).map(([k, l]) => <li key={k}><a className="flex min-h-touch items-center rounded-md border border-line px-2 text-sm font-medium text-brand hover:bg-sunken" href={`/api/export/${k}`}>{l}</a></li>)}</ul>
         <p className="mt-1 text-xs text-muted">Spreadsheet formulas in cells are neutralised, so a file is safe to open.</p></Panel></div>
+      <div className="mt-4 max-w-prose"><Panel title="Custom reports">
+        {mine.length === 0 ? <p className="text-sm text-muted">No saved reports yet. Build one with your own columns and filters.</p> : (
+          <ul className="divide-y divide-line">{mine.map((m) => <li key={m.id} className="flex items-center justify-between gap-2 py-1.5 text-sm"><span><span className="font-medium">{m.name}</span><span className="block text-xs text-muted">{isDataset(m.dataset) ? DATASETS[m.dataset].label : m.dataset} · {m.columns.length} column{m.columns.length === 1 ? "" : "s"}</span></span>
+            <span className="flex items-center gap-1">{isDataset(m.dataset) && ctx.has("export", DATASETS[m.dataset].resource) && <a className="inline-flex min-h-touch items-center text-sm font-medium text-brand" href={`/api/export/custom/${m.id}`} download>Download</a>}
+              {ctx.has("edit", "reports") && <form action={deleteCustomReport}><input type="hidden" name="id" value={m.id} /><SubmitButton variant="secondary" pending="…">Remove</SubmitButton></form>}</span></li>)}</ul>)}
+        {ctx.has("create", "reports") && <p className="mt-1"><Link href="/reports/builder" className="text-sm font-medium text-brand">Build a custom report</Link></p>}</Panel></div>
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         <Panel title="Scheduled reports">{hist.schedules.length === 0 ? <p className="text-sm text-muted">Nothing scheduled.</p> : (
           <ul className="divide-y divide-line">{hist.schedules.map((x) => <li key={x.id} className="flex items-start justify-between gap-2 py-1.5 text-sm"><span><span className="font-medium">{REPORT_LABEL[x.kind] ?? x.kind}</span> · {titleCase(x.frequency)}{x.frequency === "weekly" && x.weekday !== null ? ` on ${days[x.weekday]}` : ""}<span className="block text-xs text-muted">to {x.recipients.join(", ")} · {x.last_run_at ? `last sent ${fmtDateTime(x.last_run_at, ctx.company.timezone)}` : "not sent yet"}{!x.active ? " · switched off" : ""}</span></span>

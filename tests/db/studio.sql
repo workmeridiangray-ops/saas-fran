@@ -54,5 +54,16 @@ select t.check('members can read the renamed terms', (select plural from termino
 select t.check('members cannot rename terms', t.affected($$update terminology set plural = 'Shops'$$) = 0);
 select t.as_user(:oth);
 select t.check('terms are per company', (select count(*) from terminology) = 0);
+-- Saved custom reports
+select t.as_user(:own);
+insert into custom_reports(company_id, name, dataset, columns, created_by) values (:'cid', 'Open tasks', 'tasks', array['title','status'], :own);
+select t.denied('a report must name at least one column', format($$insert into custom_reports(company_id, name, dataset, columns, created_by) values (%L, 'Empty', 'tasks', '{}', %L)$$, :'cid', '66666666-0000-0000-0000-000000000001'));
+select t.denied('a report can only use known datasets', format($$insert into custom_reports(company_id, name, dataset, columns, created_by) values (%L, 'Bad', 'users', array['x'], %L)$$, :'cid', '66666666-0000-0000-0000-000000000001'));
+select t.denied('report names are unique per company', format($$insert into custom_reports(company_id, name, dataset, columns, created_by) values (%L, 'Open tasks', 'tasks', array['title'], %L)$$, :'cid', '66666666-0000-0000-0000-000000000001'));
+select t.as_user(:oth);
+select t.check('another company cannot see saved reports', (select count(*) from custom_reports) = 0);
+select t.check('...or remove them', t.affected($$delete from custom_reports$$) = 0);
+select t.as_user(:emp);
+select t.check('an employee without reports access sees none', (select count(*) from custom_reports) = 0);
 select t.as_user(null);
 select 'studio tests passed' as result;

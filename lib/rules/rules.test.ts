@@ -432,3 +432,30 @@ describe("configuration studio", () => {
   it("shows values readably", () => { expect(showValue(defs[3]!, true)).toBe("Yes"); expect(showValue(defs[0]!, undefined)).toBe("—"); });
   it("splits and de-duplicates options", () => { expect(parseOptions("a, b\nb ,c,,")).toEqual(["a", "b", "c"]); });
 });
+
+import { buildQuery, validateSpec, columnCatalog } from "./report-builder";
+describe("custom report builder", () => {
+  const base = { dataset: "tasks" as const, columns: ["title", "status"], filters: {} };
+  it("builds a query only from whitelisted columns", () => {
+    const q = buildQuery(base); expect(q.sql).toMatch(/^select t\.title, t\.status from tasks t/); expect(q.headers).toEqual(["Title", "Status"]); expect(q.params).toEqual([]);
+  });
+  it("parameterises filters and sorts safely", () => {
+    const q = buildQuery({ ...base, filters: { status: "open", from: "2026-01-01", to: "2026-01-31" }, sort: "title", desc: true }, [], 50);
+    expect(q.params).toEqual(["open", "2026-01-01", "2026-01-31"]); expect(q.sql).toMatch(/t\.status = \$2/); expect(q.sql).toMatch(/order by t\.title desc nulls last limit 50$/);
+  });
+  it("rejects anything outside the whitelists", () => {
+    expect(validateSpec({ ...base, columns: ["title; drop table tasks"] })).toMatch(/isn't available/);
+    expect(validateSpec({ ...base, columns: [] })).toMatch(/at least one/);
+    expect(validateSpec({ ...base, filters: { status: "nope" } })).toMatch(/status/);
+    expect(validateSpec({ ...base, filters: { from: "01/01/2026" } })).toMatch(/Dates/);
+    expect(validateSpec({ ...base, filters: { from: "2026-02-01", to: "2026-01-01" } })).toMatch(/after/);
+    expect(validateSpec({ ...base, sort: "priority" })).toMatch(/Sort by/);
+    expect(validateSpec({ ...base, dataset: "users" as never })).toMatch(/Choose/);
+  });
+  it("offers the company's custom fields as columns", () => {
+    const defs: FieldDef[] = [{ key: "cost_code", label: "Cost code", kind: "text", options: [], required: false }];
+    expect(columnCatalog("tasks", defs).some((c) => c.id === "cf:cost_code")).toBe(true);
+    expect(buildQuery({ ...base, columns: ["title", "cf:cost_code"] }, defs).sql).toContain("t.custom ->> 'cost_code'");
+    expect(() => buildQuery({ ...base, columns: ["cf:cost_code"] })).toThrow();
+  });
+});
