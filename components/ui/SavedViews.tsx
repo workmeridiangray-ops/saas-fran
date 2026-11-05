@@ -8,7 +8,7 @@ import { SubmitButton } from "@/components/ui/forms";
 export async function SavedViews({ ctx, page, query }: { ctx: Ctx; page: "/branches" | "/tasks" | "/tickets"; query: string }) {
   const views = await asUser(ctx.user.id, (db) => db.q<{ id: string; name: string; query: string }>("select id, name, query from saved_views where user_id = $1 and company_id = $2 and page = $3 order by name", [ctx.user.id, ctx.companyId, page]));
   return (
-    <div className="mb-2 flex flex-wrap items-center gap-1.5" aria-label="Saved views">
+    <div className="mb-2 flex flex-wrap items-center gap-1.5" role="group" aria-label="Saved views">
       {views.length > 0 && <span className="text-xs font-medium text-muted">Your views:</span>}
       {views.map((v) => (
         <span key={v.id} className="inline-flex items-center rounded-md border border-line bg-surface">

@@ -11,21 +11,37 @@ import { usePathname, useSearchParams } from "next/navigation";
 const KEY = "nm:form:";
 const isWorkForm = (f: HTMLFormElement) => f.getAttribute("role") !== "search" && (f.method === "post" || !!f.querySelector("[formaction]") || (f.getAttribute("action") ?? "").startsWith("javascript"));
 const fields = (f: HTMLFormElement) => [...f.elements].filter((e): e is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement => (e instanceof HTMLInputElement || e instanceof HTMLTextAreaElement || e instanceof HTMLSelectElement) && !!e.name && !e.name.startsWith("$") && e.type !== "password" && e.type !== "file" && e.type !== "hidden" && e.type !== "submit");
-const sig = (f: HTMLFormElement, i: number) => `${KEY}${location.pathname}:${i}:${fields(f).map((e) => e.name).join(",")}`;
+// Keyed by page and field names, not position: an error banner can shift which index a form has.
+const sig = (f: HTMLFormElement) => `${KEY}${location.pathname}:${fields(f).map((e) => e.name).join(",")}`;
 
 export function Remember() {
   const path = usePathname(); const search = useSearchParams().toString();
   // Runs on every navigation, not just the first load: a failed save comes back as a client-side transition.
   useEffect(() => {
-    try {
-      const failed = new URLSearchParams(search).has("err");
-      [...document.forms].filter(isWorkForm).forEach((f, i) => {
-        const raw = sessionStorage.getItem(sig(f, i)); if (!raw) return;
-        if (failed) { const saved = JSON.parse(raw) as Record<string, string | string[]>; for (const e of fields(f)) { const v = saved[e.name]; if (v === undefined) continue;
-          if (e instanceof HTMLInputElement && (e.type === "checkbox" || e.type === "radio")) e.checked = Array.isArray(v) ? v.includes(e.value) : v === e.value; else if (!Array.isArray(v)) e.value = v; } }
-        sessionStorage.removeItem(sig(f, i));
-      });
-    } catch { /* storage unavailable: forms simply start empty */ }
+    if (!new URLSearchParams(search).has("err")) {
+      // A clean page: drop anything left over for the forms on it.
+      try { [...document.forms].filter(isWorkForm).forEach((f) => sessionStorage.removeItem(sig(f))); } catch { /* ignore */ }
+      return;
+    }
+    // The failed page's form may not be in the DOM yet when the URL changes, and React resets a form once its
+    // action settles. So keep looking for a short while and apply the saved values whenever a form shows up.
+    const done = new Set<string>(); let ticks = 0;
+    let typed = false; const stop = (ev: Event) => { if (ev.isTrusted) typed = true; }; document.addEventListener("input", stop, true);
+    const apply = () => {
+      if (typed) return;
+      try {
+        for (const f of [...document.forms].filter(isWorkForm)) {
+          const key = sig(f); const raw = sessionStorage.getItem(key); if (!raw) continue;
+          const saved = JSON.parse(raw) as Record<string, string | string[]>;
+          for (const e of fields(f)) { const v = saved[e.name]; if (v === undefined) continue;
+            if (e instanceof HTMLInputElement && (e.type === "checkbox" || e.type === "radio")) e.checked = Array.isArray(v) ? v.includes(e.value) : v === e.value; else if (!Array.isArray(v) && e.value !== v) e.value = v; }
+          done.add(key);
+        }
+      } catch { /* storage unavailable: forms simply start empty */ }
+    };
+    const timer = setInterval(() => { apply(); if (++ticks > 30) { clearInterval(timer); done.forEach((k) => { try { sessionStorage.removeItem(k); } catch { /* ignore */ } }); } }, 100);
+    apply();
+    return () => { clearInterval(timer); document.removeEventListener("input", stop, true); };
   }, [path, search]);
 
   useEffect(() => {
@@ -34,9 +50,9 @@ export function Remember() {
     const onInput = (ev: Event) => { const f = (ev.target as HTMLElement).closest("form"); if (f && isWorkForm(f)) dirty = true; };
     const onSubmit = (ev: Event) => {
       submitting = true; const f = ev.target as HTMLFormElement; if (!isWorkForm(f)) return;
-      try { const i = forms().indexOf(f); const data: Record<string, string | string[]> = {};
+      try { const data: Record<string, string | string[]> = {};
         for (const e of fields(f)) { if (e instanceof HTMLInputElement && (e.type === "checkbox" || e.type === "radio")) { if (e.checked) { const cur = data[e.name]; data[e.name] = cur === undefined ? e.value : [...(Array.isArray(cur) ? cur : [cur]), e.value]; } } else data[e.name] = e.value; }
-        sessionStorage.setItem(sig(f, i), JSON.stringify(data)); } catch { /* ignore */ }
+        sessionStorage.setItem(sig(f), JSON.stringify(data)); } catch { /* ignore */ }
     };
     const onLeave = (ev: BeforeUnloadEvent) => { if (dirty && !submitting) { ev.preventDefault(); ev.returnValue = ""; } };
     document.addEventListener("input", onInput); document.addEventListener("submit", onSubmit, true); window.addEventListener("beforeunload", onLeave);
