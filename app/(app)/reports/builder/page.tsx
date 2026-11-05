@@ -27,7 +27,7 @@ export default async function Builder({ searchParams }: { searchParams: Promise<
   const preview = sp.go && !problem && canExport ? await runSpec(ctx.user.id, ctx.companyId, spec, 25) : null;
   return (
     <>
-      <nav aria-label="Breadcrumb" className="mb-1 text-sm text-muted"><Link href="/reports" className="text-brand">Reports</Link> / Builder</nav>
+      <nav aria-label="Breadcrumb" className="mb-1 text-sm text-muted"><Link href="/reports" className="text-brand underline">Reports</Link> / Builder</nav>
       <PageHeader title="Report builder" description="Choose what to report on, pick your columns and filters, preview it, then save it to reuse and download." />
       <Flash err={sp.err ?? problem ?? undefined} />
       <div className="mb-2 flex flex-wrap gap-1" role="group" aria-label="Report about">
