@@ -13,6 +13,8 @@ Scope and design direction: [`docs/project-brief.md`](docs/project-brief.md) · 
 
 **Not built** (see the release plan): franchise applicant pipeline and agreements, opening projects, stock ledger, configuration studio (custom forms and workflows), integrations and webhooks, supplier and contractor portals, offline inspections, SSO, payroll or HR, and industry-specific modules. The interface is English only; money and dates follow the company's currency and time zone.
 
+Screens: [dashboard](docs/screens/dashboard.png) · [approvals](docs/screens/approvals.png) · [orders](docs/screens/purchasing-order.png) · [billing](docs/screens/billing.png) · [roles](docs/screens/roles.png) · [phone](docs/screens/dashboard-phone.png)
+
 ## Run it
 ```bash
 cp .env.example .env            # set POSTGRES_PASSWORD and CRON_SECRET

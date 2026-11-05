@@ -65,7 +65,7 @@ export async function ownerWithCompany(page, email, name, company, model = "comp
 export async function addBranch(page, name, code, extra = async () => {}) {
   await page.goto(BASE + "/branches/new"); await page.getByLabel("Branch name").fill(name); await page.getByLabel("Code").fill(code); await extra();
   await page.getByRole("button", { name: "Add branch" }).click(); await page.waitForURL(/\/branches\/[0-9a-f-]{36}/);
-  return page.url().split("/").pop();
+  return page.url().split("?")[0].split("/").pop();
 }
 /** Invite from the owner's page; then a fresh browser context accepts it (signing up if needed). Returns { ctx, page }. */
 export async function inviteAndJoin(ownerPage, browser, email, name, roleLabel) {
