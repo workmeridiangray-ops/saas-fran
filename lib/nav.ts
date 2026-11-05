@@ -17,13 +17,15 @@ export const NAV: NavGroup[] = [
   { label: "Network", items: [
     { label: "Branches", href: "/branches", resource: "branches", icon: "store" },
     { label: "Organisation", href: "/organisation", resource: "organisation", icon: "tree" },
+    { label: "Opening projects", href: "/projects", resource: "projects", module: "projects", icon: "rocket" },
     { label: "Assets & licences", href: "/assets", resource: "assets", module: "assets", icon: "wrench" },
   ]},
   { label: "People", items: [
     { label: "People & access", href: "/people", resource: "users", module: "people", icon: "users" },
     { label: "Training", href: "/training", resource: "training", module: "training", icon: "cap" },
   ]},
-  { label: "Purchasing", items: [{ label: "Purchasing", href: "/purchasing", resource: "purchasing", module: "purchasing", icon: "cart" }]},
+  { label: "Purchasing", items: [{ label: "Purchasing", href: "/purchasing", resource: "purchasing", module: "purchasing", icon: "cart" },
+    { label: "Stock", href: "/stock", resource: "inventory", module: "stock", icon: "box" }]},
   { label: "Finance", items: [{ label: "Sales & royalties", href: "/royalties", resource: "royalties", module: "royalties", icon: "coins" }]},
   { label: "Reports", items: [{ label: "Reports & exports", href: "/reports", resource: "reports", icon: "chart" }]},
   { label: "Settings", items: [

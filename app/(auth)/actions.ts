@@ -137,12 +137,12 @@ export async function acceptInvitation(f: FormData) {
     if (!t) fail("This invitation has expired or was already used. Ask for a new one.");
     const { invitation_id, company_id } = t!.payload as { invitation_id: string; company_id: string };
     const companyId = await asService(async (db) => {
-      const inv = await db.one<{ email: string; role_id: string; branch_ids: string[]; status: string; expires_at: string }>("select email, role_id, branch_ids, status, expires_at from invitations where id = $1 and company_id = $2 for update", [invitation_id, company_id]);
+      const inv = await db.one<{ email: string; role_id: string; branch_ids: string[]; brand_ids: string[]; region_ids: string[]; status: string; expires_at: string }>("select email, role_id, branch_ids, brand_ids, region_ids, status, expires_at from invitations where id = $1 and company_id = $2 for update", [invitation_id, company_id]);
       if (!inv || inv.status !== "pending" || new Date(inv.expires_at) < new Date()) fail("This invitation is no longer valid. Ask for a new one.");
       if (inv!.email.toLowerCase() !== s!.email.toLowerCase()) fail(`This invitation was sent to ${inv!.email}. Sign in with that address to accept it.`);
       const m = await db.one<{ id: string }>(
-        `insert into memberships(company_id, user_id, status, branch_ids) values ($1,$2,'active',$3)
-         on conflict (company_id, user_id) do update set status = 'active', branch_ids = excluded.branch_ids returning id`, [company_id, s!.id, inv!.branch_ids]);
+        `insert into memberships(company_id, user_id, status, branch_ids, brand_ids, region_ids) values ($1,$2,'active',$3,$4,$5)
+         on conflict (company_id, user_id) do update set status = 'active', branch_ids = excluded.branch_ids, brand_ids = excluded.brand_ids, region_ids = excluded.region_ids returning id`, [company_id, s!.id, inv!.branch_ids, inv!.brand_ids, inv!.region_ids]);
       await db.q("insert into membership_roles(membership_id, role_id, company_id) values ($1,$2,$3) on conflict do nothing", [m!.id, inv!.role_id, company_id]);
       await db.q("update invitations set status = 'accepted' where id = $1", [invitation_id]);
       return company_id;

@@ -1,0 +1,56 @@
+/** Starter checklists per industry. The same engine runs them all; only the items differ (brief §10). */
+export interface TemplateItem { category: Category; title: string; required: boolean; evidence?: boolean }
+export type Category = "site" | "fitout" | "equipment" | "recruitment" | "licences" | "training" | "other";
+export const CATEGORY_LABEL: Record<Category, string> = { site: "Site readiness", fitout: "Fit-out and branding", equipment: "Equipment", recruitment: "Recruitment", licences: "Licences and documents", training: "Training", other: "Launch" };
+
+const common: TemplateItem[] = [
+  { category: "site", title: "Lease or site agreement signed", required: true, evidence: true },
+  { category: "site", title: "Utilities connected and tested", required: true },
+  { category: "fitout", title: "Signage and branding installed", required: true, evidence: true },
+  { category: "licences", title: "Business licence in place", required: true, evidence: true },
+  { category: "licences", title: "Insurance certificate on file", required: true, evidence: true },
+  { category: "recruitment", title: "Branch manager hired", required: true },
+  { category: "training", title: "Opening team trained on company SOPs", required: true },
+  { category: "other", title: "Soft-launch walkthrough completed", required: false },
+  { category: "other", title: "Launch announcement approved", required: false },
+];
+export const OPENING_TEMPLATES: Record<string, { name: string; items: TemplateItem[] }> = {
+  restaurants: { name: "Restaurant opening", items: [...common,
+    { category: "fitout", title: "Kitchen fit-out inspected", required: true, evidence: true },
+    { category: "equipment", title: "Refrigeration installed and holding safe temperatures", required: true, evidence: true },
+    { category: "equipment", title: "Fire suppression and extraction certified", required: true, evidence: true },
+    { category: "licences", title: "Food business registration", required: true, evidence: true },
+    { category: "licences", title: "Fire safety certificate", required: true, evidence: true },
+    { category: "training", title: "Food hygiene certificates for all kitchen staff", required: true },
+    { category: "recruitment", title: "Head chef hired", required: true },
+    { category: "equipment", title: "POS and till tested", required: false }] },
+  printing: { name: "Print centre opening", items: [...common,
+    { category: "equipment", title: "Production printers installed and calibrated", required: true, evidence: true },
+    { category: "equipment", title: "Printer health reporting connected", required: false },
+    { category: "equipment", title: "Consumables stocked (paper, ink, finishing)", required: true },
+    { category: "fitout", title: "Customer collection counter set up", required: true },
+    { category: "training", title: "Artwork-check procedure trained", required: true },
+    { category: "recruitment", title: "Production operator hired", required: true }] },
+  retail: { name: "Retail store opening", items: [...common,
+    { category: "fitout", title: "Shelving and merchandising layout installed", required: true, evidence: true },
+    { category: "equipment", title: "Till and card terminals tested", required: true },
+    { category: "equipment", title: "Opening stock received and counted", required: true },
+    { category: "licences", title: "Product compliance labelling checked", required: true },
+    { category: "training", title: "Returns and refunds procedure trained", required: true },
+    { category: "other", title: "Opening promotion loaded", required: false }] },
+  education: { name: "Education centre opening", items: [...common,
+    { category: "site", title: "Classroom capacity and fire occupancy signed off", required: true, evidence: true },
+    { category: "fitout", title: "Classrooms furnished and equipped", required: true },
+    { category: "equipment", title: "Teaching technology tested", required: true },
+    { category: "recruitment", title: "Qualified trainers hired and credentials verified", required: true, evidence: true },
+    { category: "licences", title: "Education authority registration", required: true, evidence: true },
+    { category: "other", title: "First batch enrolment confirmed", required: false }] },
+  services: { name: "Service centre opening", items: [...common,
+    { category: "equipment", title: "Service tools and diagnostics calibrated", required: true, evidence: true },
+    { category: "equipment", title: "Spare parts stock received", required: true },
+    { category: "recruitment", title: "Technicians hired", required: true },
+    { category: "training", title: "Service checklist and job-completion evidence trained", required: true },
+    { category: "other", title: "Booking and dispatch process tested", required: true }] },
+  general: { name: "Branch opening", items: common },
+};
+export const templateFor = (industry: string) => OPENING_TEMPLATES[industry] ?? OPENING_TEMPLATES.general!;

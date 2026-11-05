@@ -30,6 +30,7 @@ export default async function CommandCentre({ searchParams }: { searchParams: Pr
       training: has("training") ? await n("select count(*) n from enrolments where company_id=$1 and user_id=$2 and status <> 'passed'", [ctx.companyId, uid]) : 0,
       urgentTickets: has("tickets") ? await n("select count(*) n from tickets where company_id=$1 and status in ('open','in_progress') and priority in ('high','urgent')", [ctx.companyId]) : 0,
       dues: has("royalties") ? await db.q<{ number: string; due_date: string }>("select s.number, s.due_date from statements s where s.company_id=$1 and s.status='issued' and s.due_date < current_date and app.statement_outstanding(s.id) > 0 limit 3", [ctx.companyId]) : [],
+      lowStock: has("stock") ? await n("select count(*) n from stock_reorder r left join stock_levels l on l.branch_id = r.branch_id and l.item_id = r.item_id where r.company_id=$1 and coalesce(l.qty,0) <= r.reorder_point", [ctx.companyId]) : 0,
       people: await n("select count(*) n from public.company_people($1)", [ctx.companyId]),
     };
     return out;
@@ -44,6 +45,7 @@ export default async function CommandCentre({ searchParams }: { searchParams: Pr
   if (d.unacked) items.push({ tone: "warn", label: "Read & confirm", text: `${d.unacked} document${d.unacked > 1 ? "s need" : " needs"} your acknowledgement`, href: "/knowledge" });
   if (d.training) items.push({ tone: "info", label: "Training", text: `${d.training} course${d.training > 1 ? "s" : ""} assigned to you`, href: "/training" });
   if (d.urgentTickets) items.push({ tone: "warn", label: "Urgent", text: `${d.urgentTickets} high-priority ticket${d.urgentTickets > 1 ? "s" : ""} open`, href: "/tickets" });
+  if (d.lowStock) items.push({ tone: "warn", label: "Reorder", text: `${d.lowStock} stock item${d.lowStock > 1 ? "s are" : " is"} at or below its reorder point`, href: "/stock" });
   if (d.pending.length) items.push({ tone: "info", label: "Needs you", text: `${d.pending.length} request${d.pending.length > 1 ? "s" : ""} waiting for a decision`, href: "/approvals" });
 
   const active = d.branches.filter((b) => b.status === "active").length;

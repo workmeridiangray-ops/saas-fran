@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   Bell, BookOpen, Box, CheckSquare, ChartColumn, ClipboardCheck, Coins, CreditCard, GraduationCap, ListChecks, ListTodo, LayoutDashboard,
-  LifeBuoy, Menu, Network, Search, ShieldCheck, ShoppingCart, Store, Users, Wrench, ChevronsUpDown, LogOut, UserCog, type LucideIcon,
+  LifeBuoy, Menu, Network, Search, ShieldCheck, ShoppingCart, Store, Users, Wrench, ChevronsUpDown, LogOut, UserCog, Rocket, Handshake, Plug, type LucideIcon,
 } from "lucide-react";
 import { NAV } from "@/lib/nav";
 import type { Ctx } from "@/lib/ctx";
@@ -9,7 +9,7 @@ import { signOut } from "@/app/(auth)/actions";
 
 const ICONS: Record<string, LucideIcon> = {
   layout: LayoutDashboard, check: CheckSquare, list: ListTodo, ticks: ListChecks, clipboard: ClipboardCheck, book: BookOpen, life: LifeBuoy,
-  store: Store, tree: Network, wrench: Wrench, users: Users, cap: GraduationCap, cart: ShoppingCart, coins: Coins, chart: ChartColumn, card: CreditCard, shield: ShieldCheck, box: Box,
+  store: Store, tree: Network, wrench: Wrench, users: Users, cap: GraduationCap, cart: ShoppingCart, coins: Coins, chart: ChartColumn, card: CreditCard, shield: ShieldCheck, box: Box, rocket: Rocket, handshake: Handshake, plug: Plug,
 };
 
 function NavList({ ctx }: { ctx: Ctx }) {
@@ -90,7 +90,7 @@ export function Shell({ ctx, children }: { ctx: Ctx; children: React.ReactNode }
           </form>
           <div className="ml-auto flex items-center gap-1.5">
             <span title="What you can see is limited to this scope" className="hidden rounded-full border border-line bg-canvas px-1.5 py-0.5 text-xs text-muted md:inline">
-              Scope: {scoped ? "assigned branches only" : "whole company"}
+              Scope: {scoped ? "limited to your assignment" : "whole company"}
             </span>
             <Link href="/notifications" aria-label={`Notifications, ${ctx.unread} unread`} className="relative inline-flex min-h-touch min-w-touch items-center justify-center rounded-md hover:bg-sunken">
               <Bell aria-hidden size={18} />

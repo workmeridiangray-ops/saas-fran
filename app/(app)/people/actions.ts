@@ -8,7 +8,8 @@ import { ACTIONS, RESOURCES } from "@/lib/rules/permissions";
 
 export async function inviteMember(f: FormData) {
   const ctx = await requireCtx(); const email = str(f, "email").toLowerCase(); const roleId = uuid(f, "role_id");
-  const branches = f.getAll("branch_ids").map(String).filter((b) => /^[0-9a-f-]{36}$/i.test(b));
+  const ids = (k: string) => f.getAll(k).map(String).filter((b) => /^[0-9a-f-]{36}$/i.test(b));
+  const branches = ids("branch_ids"), brands = ids("brand_ids"), regions = ids("region_ids");
   return run("/people", "/people", `Invitation sent to ${email}.`, async () => {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail("Enter a valid email address.");
     const inv = await asUser(ctx.user.id, async (db) => {
@@ -18,7 +19,7 @@ export async function inviteMember(f: FormData) {
         if (used >= plan.max_users) fail(`Your plan includes ${plan.max_users} users and you've reached it. Upgrade the plan to invite more people.`);
       }
       await db.q("update invitations set status = 'expired' where company_id = $1 and email = $2 and status = 'pending' and expires_at < now()", [ctx.companyId, email]);
-      return (await db.one<{ id: string }>("insert into invitations(company_id, email, role_id, branch_ids, invited_by) values ($1,$2,$3,$4,$5) returning id", [ctx.companyId, email, roleId, branches, ctx.user.id]))!.id;
+      return (await db.one<{ id: string }>("insert into invitations(company_id, email, role_id, branch_ids, brand_ids, region_ids, invited_by) values ($1,$2,$3,$4,$5,$6,$7) returning id", [ctx.companyId, email, roleId, branches, brands, regions, ctx.user.id]))!.id;
     });
     const token = await issueToken("invitation", null, "7 days", { invitation_id: inv, company_id: ctx.companyId });
     await sendMail(email, `You're invited to ${ctx.company.name}`, `${ctx.user.displayName || ctx.user.email} invited you to join ${ctx.company.name}.\n\nAccept the invitation: ${link(`/invite/${token}`)}\n\nThis link works for 7 days.`);
@@ -35,7 +36,8 @@ export async function revokeInvitation(f: FormData) {
 
 export async function updateMember(f: FormData) {
   const ctx = await requireCtx(); const id = uuid(f, "id"); const roleId = uuid(f, "role_id");
-  const branches = f.getAll("branch_ids").map(String).filter((b) => /^[0-9a-f-]{36}$/i.test(b));
+  const ids = (k: string) => f.getAll(k).map(String).filter((b) => /^[0-9a-f-]{36}$/i.test(b));
+  const branches = ids("branch_ids"), brands = ids("brand_ids"), regions = ids("region_ids");
   const limit = str(f, "limit"); const status = str(f, "status") === "suspended" ? "suspended" : "active";
   return run("/people", "/people", "Access updated.", async () => {
     await asUser(ctx.user.id, async (db) => {
@@ -45,7 +47,7 @@ export async function updateMember(f: FormData) {
       if (m!.user_id === ctx.user.id) { const cur = await db.one("select 1 from membership_roles where membership_id = $1 and role_id = $2", [id, roleId]); if (!cur) fail("You can't change your own role. Ask another administrator."); }
       let lim: number | null = null;
       if (limit !== "") { const n = Number(limit); if (!Number.isFinite(n) || n < 0) fail("Approval limit must be a positive amount."); lim = Math.round(n * 100); }
-      await db.q("update memberships set branch_ids = $2, approval_limit_minor = $3, status = $4 where id = $1", [id, branches, lim, status]);
+      await db.q("update memberships set branch_ids = $2, brand_ids = $5, region_ids = $6, approval_limit_minor = $3, status = $4 where id = $1", [id, branches, lim, status, brands, regions]);
       await db.q("delete from membership_roles where membership_id = $1 and company_id = $2", [id, ctx.companyId]);
       await db.q("insert into membership_roles(membership_id, role_id, company_id) values ($1,$2,$3)", [id, roleId, ctx.companyId]);
     });

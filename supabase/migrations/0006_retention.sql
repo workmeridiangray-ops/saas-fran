@@ -19,6 +19,7 @@ language plpgsql security definer set search_path = public as $$
 declare c record; n int := 0; t text;
 begin
   if p_retention_days < 30 then raise exception 'retention must be at least 30 days'; end if;
+  perform set_config('app.purging', 'on', true);   -- lets append-only ledgers be deleted by this routine only
   for c in select id, name from companies where status = 'closing' and closing_at < now() - make_interval(days => p_retention_days) loop
     insert into retained_invoices select i.*, c.name, now() from platform_invoices i where i.company_id = c.id;
     -- Child tables without a cascade path, in dependency order. (The audit log is deliberately kept.)

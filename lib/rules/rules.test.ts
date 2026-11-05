@@ -320,3 +320,35 @@ describe("inspection template parsing", () => {
     expect(() => parseItems("x | 1.5")).toThrow(/Line 1/);
   });
 });
+
+import { overBudget, readiness, type ProjectItem } from "./projects";
+import { OPENING_TEMPLATES, templateFor } from "../templates/opening";
+describe("opening projects", () => {
+  const mk = (over: Partial<ProjectItem>): ProjectItem => ({ id: "x", category: "site", title: "t", required: true, status: "todo", costMinor: 0, ...over });
+  it("cannot launch with required work outstanding", () => {
+    const r = readiness([mk({ status: "done" }), mk({ id: "b" }), mk({ id: "c", required: false })], "2026-11-05");
+    expect(r.canLaunch).toBe(false); expect(r.pct).toBe(50); expect(r.reasons[0]).toMatch(/1 required item not finished/);
+  });
+  it("a blocked item stops launch even if the required work is done", () => {
+    const r = readiness([mk({ status: "done" }), mk({ id: "o", required: false, status: "blocked" })], "2026-11-05");
+    expect(r.canLaunch).toBe(false); expect(r.blocked).toBe(1);
+  });
+  it("launches when every required item is done and nothing is blocked; optional items don't count", () => {
+    const r = readiness([mk({ status: "done" }), mk({ id: "o", required: false })], "2026-11-05");
+    expect(r.canLaunch).toBe(true); expect(r.pct).toBe(100);
+  });
+  it("an empty project is not ready, and spend and overdue are tallied", () => {
+    expect(readiness([], "2026-11-05").canLaunch).toBe(false);
+    const r = readiness([mk({ costMinor: 1500, dueOn: "2026-11-01" }), mk({ id: "d", status: "done", costMinor: 500, dueOn: "2026-10-01" })], "2026-11-05");
+    expect(r.spentMinor).toBe(2000); expect(r.overdue).toBe(1); expect(overBudget(1900, 2000)).toBe(true); expect(overBudget(0, 2000)).toBe(false);
+  });
+  it("every industry template is usable and distinct from the generic one", () => {
+    for (const [k, t] of Object.entries(OPENING_TEMPLATES)) {
+      expect(t.items.filter((i) => i.required).length, k).toBeGreaterThanOrEqual(6);
+      expect(new Set(t.items.map((i) => i.category)).size, k).toBeGreaterThanOrEqual(5);
+    }
+    expect(templateFor("restaurants").items.some((i) => /Food/.test(i.title))).toBe(true);
+    expect(templateFor("printing").items.some((i) => /printers/.test(i.title))).toBe(true);
+    expect(templateFor("nonsense")).toBe(OPENING_TEMPLATES.general);
+  });
+});

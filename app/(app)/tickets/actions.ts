@@ -33,3 +33,16 @@ export async function commentTicket(f: FormData) {
     await asUser(ctx.user.id, (db) => db.q("insert into ticket_comments(company_id, ticket_id, author_id, body) values ($1,$2,$3,$4)", [ctx.companyId, id, ctx.user.id, body]));
   });
 }
+
+export async function saveSla(f: FormData) {
+  const ctx = await requireCtx();
+  return run("/tickets?tab=sla", "/tickets?tab=sla", "Response deadlines saved. They apply to tickets raised from now on.", async () => {
+    await asUser(ctx.user.id, async (db) => {
+      for (const p of PRI) {
+        const h = str(f, `h:${p}`); if (h === "") { await db.q("delete from sla_policies where company_id = $1 and priority = $2", [ctx.companyId, p]); continue; }
+        const n = Number(h); if (!Number.isInteger(n) || n < 1 || n > 8760) fail(`${p}: enter whole hours between 1 and 8760.`);
+        await db.q("insert into sla_policies(company_id, priority, resolve_hours) values ($1,$2,$3) on conflict (company_id, priority) do update set resolve_hours = excluded.resolve_hours", [ctx.companyId, p, n]);
+      }
+    });
+  });
+}

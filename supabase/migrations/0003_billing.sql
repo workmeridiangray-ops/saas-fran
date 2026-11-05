@@ -40,8 +40,8 @@ $$;
 insert into public.plans(id, name) values ('starter','Starter'), ('growth','Growth'), ('scale','Scale');
 insert into public.plan_versions(plan_id, version, monthly_price_minor, max_branches, max_users, storage_mb, modules) values
   ('starter', 1,  9900,   3,  10,   5000, '{tasks,documents,tickets,people}'),
-  ('growth',  1, 29900,  25,  60,  50000, '{tasks,documents,tickets,people,inspections,purchasing,training,assets}'),
-  ('scale',   1, 79900, null, null, 500000, '{tasks,documents,tickets,people,inspections,purchasing,training,assets,royalties}');
+  ('growth',  1, 29900,  25,  60,  50000, '{tasks,documents,tickets,people,inspections,purchasing,training,assets,projects,stock}'),
+  ('scale',   1, 79900, null, null, 500000, '{tasks,documents,tickets,people,inspections,purchasing,training,assets,projects,stock,royalties,franchise,integrations}');
 
 create or replace function app.current_plan(p_company uuid) returns plan_versions
 language sql stable security definer set search_path = public as $$
@@ -196,7 +196,7 @@ begin
     {"resource":"approvals","actions":["view","approve","reject"]},{"resource":"purchasing","actions":["view","create","edit","approve"]},
     {"resource":"inspections","actions":["view"]},{"resource":"actions","actions":["view","edit"]},{"resource":"training","actions":["view"]},{"resource":"documents","actions":["view"]},
     {"resource":"tickets","actions":["view","create","edit"]},{"resource":"sales","actions":["view","create"]},
-    {"resource":"assets","actions":["view","create","edit"]},{"resource":"reports","actions":["view","export"]},{"resource":"people","actions":["view"]}]') returning id into mgr_r;
+    {"resource":"assets","actions":["view","create","edit"]},{"resource":"projects","actions":["view","create","edit"]},{"resource":"inventory","actions":["view","create","edit"]},{"resource":"reports","actions":["view","export"]},{"resource":"people","actions":["view"]}]') returning id into mgr_r;
   insert into roles(company_id, name, grants) values
     (cid, 'Finance', '[{"resource":"royalties","actions":["view","create","edit","approve","pay"]},{"resource":"sales","actions":["view"]},
       {"resource":"billing","actions":["view"]},{"resource":"approvals","actions":["view","approve"]},{"resource":"reports","actions":["view","export"]},{"resource":"branches","actions":["view"]},{"resource":"franchise","actions":["view"]}]'),
