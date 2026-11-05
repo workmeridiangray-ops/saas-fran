@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   Bell, BookOpen, Box, CheckSquare, ChartColumn, ClipboardCheck, Coins, CreditCard, GraduationCap, ListChecks, ListTodo, LayoutDashboard,
-  LifeBuoy, Menu, Network, Search, ShieldCheck, ShoppingCart, Store, Users, Wrench, ChevronsUpDown, LogOut, UserCog, Rocket, Handshake, Plug, CalendarDays, type LucideIcon,
+  LifeBuoy, Menu, Network, Search, ShieldCheck, ShoppingCart, Store, Users, Wrench, ChevronsUpDown, LogOut, UserCog, Rocket, Handshake, Plug, CalendarDays, SlidersHorizontal, type LucideIcon,
 } from "lucide-react";
 import { NAV } from "@/lib/nav";
 import type { Ctx } from "@/lib/ctx";
@@ -10,7 +10,7 @@ import { Density } from "@/components/ui/Density";
 
 const ICONS: Record<string, LucideIcon> = {
   layout: LayoutDashboard, check: CheckSquare, list: ListTodo, ticks: ListChecks, clipboard: ClipboardCheck, book: BookOpen, life: LifeBuoy,
-  store: Store, tree: Network, wrench: Wrench, users: Users, cap: GraduationCap, cart: ShoppingCart, coins: Coins, chart: ChartColumn, card: CreditCard, shield: ShieldCheck, box: Box, rocket: Rocket, handshake: Handshake, plug: Plug, calendar: CalendarDays,
+  store: Store, tree: Network, wrench: Wrench, users: Users, cap: GraduationCap, cart: ShoppingCart, coins: Coins, chart: ChartColumn, card: CreditCard, shield: ShieldCheck, box: Box, rocket: Rocket, handshake: Handshake, plug: Plug, calendar: CalendarDays, sliders: SlidersHorizontal,
 };
 
 function NavList({ ctx }: { ctx: Ctx }) {
@@ -28,7 +28,7 @@ function NavList({ ctx }: { ctx: Ctx }) {
               return (
                 <li key={i.href}>
                   <Link href={i.href} className="flex min-h-touch items-center gap-1.5 rounded-md px-1.5 text-sm text-ink hover:bg-sunken">
-                    <Icon aria-hidden size={16} className="text-muted" />{i.label}
+                    <Icon aria-hidden size={16} className="text-muted" />{(i.term && ctx.terms[i.term]?.plural) || i.label}
                   </Link>
                 </li>
               );

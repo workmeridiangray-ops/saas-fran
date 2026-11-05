@@ -7,6 +7,7 @@ import { addTaskComment, setTaskStatus } from "../actions";
 import { Field, TextArea } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/forms";
 import { Flash } from "@/components/ui/flash";
+import { CustomValuesList } from "@/components/studio/CustomValuesList";
 import { PageHeader, Panel, Status, type Tone } from "@/components/ui";
 import { fmtDateTime, titleCase } from "@/lib/format";
 
@@ -29,6 +30,7 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
       <nav aria-label="Breadcrumb" className="mb-1 text-sm text-muted"><Link href="/tasks" className="text-brand">Tasks</Link> / {t.title}</nav>
       <PageHeader title={t.title} description={`${t.branch ?? "Company-wide"} · assigned to ${t.assignee ?? "nobody"} · created by ${t.creator ?? "—"}`} actions={<Status tone={TONE[t.status] ?? "neutral"}>{titleCase(t.status)}</Status>} />
       <Flash ok={ok} err={err} />
+      <CustomValuesList entity="tasks" id={t.id} userId={ctx.user.id} companyId={ctx.companyId} />
       <div className="grid gap-3 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-2">
           <Panel title="Details"><p className="whitespace-pre-wrap text-sm">{t.description || "No details."}</p>

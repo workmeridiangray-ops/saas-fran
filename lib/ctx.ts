@@ -13,6 +13,8 @@ export interface Ctx {
   planId: string | null;
   unread: number;
   isPlatformStaff: boolean;
+  /** Company-chosen words for branch/task/ticket (configuration studio). Missing = use the default. */
+  terms: Partial<Record<"branch" | "task" | "ticket", { singular: string; plural: string }>>;
   /** Role grants say yes (ignores record scope; the database enforces scope per row). Use for showing buttons and nav. */
   has(action: Action, resource: Resource): boolean;
   /** Full check for one specific record. */
@@ -56,6 +58,8 @@ export async function requireCtx(): Promise<Ctx> {
     else redirect("/workspaces");
   }
   const unread = await asUser(user.id, async (db) => Number((await db.one<{ n: string }>("select count(*) n from notifications where user_id = $1 and read_at is null and company_id = $2", [user.id, row!.company_id]))!.n));
+  const termRows = await asUser(user.id, (db) => db.q<{ term: "branch" | "task" | "ticket"; singular: string; plural: string }>("select term, singular, plural from terminology where company_id = $1", [row!.company_id]));
+  const terms = Object.fromEntries(termRows.map((t) => [t.term, { singular: t.singular, plural: t.plural }])) as Ctx["terms"];
   const staff = await asService((db) => db.one("select 1 from platform_staff where user_id = $1", [user.id]));
   const grants = row.grants.flat();
   const membership: Membership = {
@@ -68,7 +72,7 @@ export async function requireCtx(): Promise<Ctx> {
   return {
     user, companyId: row.company_id,
     company: { name: row.name, status: row.status, currency: row.currency, timezone: row.timezone, operatingModel: row.operating_model, industry: row.industry },
-    membership, roleNames: row.role_names, modules: row.modules ?? [], planId: row.plan_id, unread, isPlatformStaff: !!staff,
+    membership, roleNames: row.role_names, modules: row.modules ?? [], planId: row.plan_id, unread, isPlatformStaff: !!staff, terms,
     has: (a, r) => row!.status !== "suspended" || a === "view" || r === "billing" ? canRule(unscoped, a, r, { companyId: row!.company_id, ownerId: user.id }) : false,
     can: (a, r, t = {}) => canRule(membership, a, r, { companyId: row!.company_id, ...t }),
   };

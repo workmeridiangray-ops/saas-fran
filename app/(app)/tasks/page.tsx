@@ -23,7 +23,7 @@ export default async function Tasks({ searchParams }: { searchParams: Promise<{ 
   const tab = (f: string, label: string) => <Link key={f} href={`/tasks?filter=${f}`} aria-current={filter === f ? "page" : undefined} className={`inline-flex min-h-touch items-center rounded-md border px-2 text-sm ${filter === f ? "border-brand bg-brand-soft font-medium" : "border-line bg-surface hover:bg-sunken"}`}>{label}</Link>;
   return (
     <>
-      <PageHeader title="Tasks" description="Work assigned across the network. Deadlines show in each branch's own time zone."
+      <PageHeader title={ctx.terms.task?.plural ?? "Tasks"} description="Work assigned across the network. Deadlines show in each branch's own time zone."
         actions={ctx.has("create", "tasks") ? <ButtonLink href="/tasks/new" variant="primary">New task</ButtonLink> : undefined} />
       <Flash ok={ok} err={err} />
       <SavedViews ctx={ctx} page="/tasks" query={new URLSearchParams({ ...(filter !== "all" && { filter }), ...(status && { status }), ...(q && { q }) }).toString()} />

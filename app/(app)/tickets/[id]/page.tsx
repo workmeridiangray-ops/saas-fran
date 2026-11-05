@@ -9,6 +9,7 @@ import { memberOptions } from "@/lib/data/pickers";
 import { Field, Select, TextArea } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/forms";
 import { Flash } from "@/components/ui/flash";
+import { CustomValuesList } from "@/components/studio/CustomValuesList";
 import { PageHeader, Panel, Status, type Tone } from "@/components/ui";
 import { fmtDateTime, titleCase } from "@/lib/format";
 
@@ -29,6 +30,7 @@ export default async function TicketPage({ params, searchParams }: { params: Pro
       <nav aria-label="Breadcrumb" className="mb-1 text-sm text-muted"><Link href="/tickets" className="text-brand">Tickets</Link> / {t.number}</nav>
       <PageHeader title={t.title} description={`${titleCase(t.kind)} · ${t.category} · ${t.branch ?? "Company-wide"} · by ${t.creator ?? "—"} on ${fmtDateTime(t.created_at, ctx.company.timezone)}`} actions={<Status tone={TONE[t.status] ?? "neutral"}>{titleCase(t.status)}</Status>} />
       <Flash ok={ok} err={err} />
+      <CustomValuesList entity="tickets" id={t.id} userId={ctx.user.id} companyId={ctx.companyId} />
       <div className="grid gap-3 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-2">
           <Panel title="Description"><p className="whitespace-pre-wrap text-sm">{t.body || "No description."}</p>{t.resolution && <p className="mt-2 text-sm"><span className="text-xs text-muted">Resolution</span><br />{t.resolution}</p>}</Panel>

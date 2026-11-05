@@ -3,6 +3,8 @@ import { asUser } from "@/lib/db";
 import { requireCtx } from "@/lib/ctx";
 import { fail, run, str, uuid } from "@/lib/flash";
 import { zonedToIso } from "@/lib/format";
+import { loadFields } from "@/lib/studio";
+import { parseCustom } from "@/lib/rules/studio";
 
 const opt = (f: FormData, k: string) => { const v = str(f, k); return v === "" ? null : v; };
 
@@ -15,8 +17,9 @@ export async function createTask(f: FormData) {
     await asUser(ctx.user.id, async (db) => {
       // Deadlines are entered in the branch's time zone.
       const tz = branch ? (await db.one<{ timezone: string }>("select timezone from branches where id = $1", [branch]))?.timezone ?? ctx.company.timezone : ctx.company.timezone;
-      const id = (await db.one<{ id: string }>("insert into tasks(company_id, branch_id, title, description, assignee_id, created_by, priority, due_at, requires_evidence) values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id",
-        [ctx.companyId, branch, title, str(f, "description"), assignee, ctx.user.id, priority, due ? zonedToIso(due, tz) : null, f.get("requires_evidence") === "on"]))!.id;
+      const cf = parseCustom(await loadFields(db, ctx.companyId, "tasks"), (n) => f.get(n) as string | null); if (cf.error) fail(cf.error);
+      const id = (await db.one<{ id: string }>("insert into tasks(company_id, branch_id, title, description, assignee_id, created_by, priority, due_at, requires_evidence, custom) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id",
+        [ctx.companyId, branch, title, str(f, "description"), assignee, ctx.user.id, priority, due ? zonedToIso(due, tz) : null, f.get("requires_evidence") === "on", JSON.stringify(cf.values)]))!.id;
       if (assignee && assignee !== ctx.user.id) await db.q("insert into notifications(company_id, user_id, title, body, href) values ($1,$2,$3,$4,$5)", [ctx.companyId, assignee, `New task: ${title}`, due ? `Due ${due.replace("T", " ")} (${tz})` : "", `/tasks/${id}`]);
     });
   });

@@ -1,6 +1,6 @@
 import type { Resource } from "@/lib/rules/permissions";
 
-export interface NavItem { label: string; href: string; resource: Resource; module?: string; icon: string }
+export interface NavItem { label: string; href: string; resource: Resource; module?: string; icon: string; term?: "branch" | "task" | "ticket" }
 export interface NavGroup { label: string; items: NavItem[] }
 
 /** Groups follow brief B3. An item shows only if the role can view it and the plan includes its module. */
@@ -8,14 +8,14 @@ export const NAV: NavGroup[] = [
   { label: "Operations", items: [
     { label: "Command centre", href: "/", resource: "tasks", icon: "layout" },
     { label: "Approvals", href: "/approvals", resource: "approvals", icon: "check" },
-    { label: "Tasks", href: "/tasks", resource: "tasks", module: "tasks", icon: "list" },
+    { label: "Tasks", href: "/tasks", resource: "tasks", module: "tasks", icon: "list", term: "task" },
     { label: "Checklists", href: "/checklists", resource: "tasks", module: "tasks", icon: "ticks" },
     { label: "Inspections", href: "/inspections", resource: "inspections", module: "inspections", icon: "clipboard" },
     { label: "Knowledge", href: "/knowledge", resource: "documents", module: "documents", icon: "book" },
-    { label: "Tickets", href: "/tickets", resource: "tickets", module: "tickets", icon: "life" },
+    { label: "Tickets", href: "/tickets", resource: "tickets", module: "tickets", icon: "life", term: "ticket" },
   ]},
   { label: "Network", items: [
-    { label: "Branches", href: "/branches", resource: "branches", icon: "store" },
+    { label: "Branches", href: "/branches", resource: "branches", icon: "store", term: "branch" },
     { label: "Organisation", href: "/organisation", resource: "organisation", icon: "tree" },
     { label: "Franchise", href: "/franchise", resource: "franchise", module: "franchise", icon: "handshake" },
     { label: "Opening projects", href: "/projects", resource: "projects", module: "projects", icon: "rocket" },
@@ -32,6 +32,7 @@ export const NAV: NavGroup[] = [
   { label: "Reports", items: [{ label: "Reports & exports", href: "/reports", resource: "reports", icon: "chart" }]},
   { label: "Settings", items: [
     { label: "Plan & billing", href: "/billing", resource: "billing", icon: "card" },
+    { label: "Configuration studio", href: "/studio", resource: "studio", icon: "sliders" },
     { label: "Integrations", href: "/integrations", resource: "integrations", module: "integrations", icon: "plug" },
     { label: "Audit log", href: "/audit", resource: "organisation", icon: "shield" },
   ]},

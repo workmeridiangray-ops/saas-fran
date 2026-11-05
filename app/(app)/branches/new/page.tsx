@@ -7,6 +7,8 @@ import { Field, FormCard, Select } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/forms";
 import { Flash } from "@/components/ui/flash";
 import { PageHeader } from "@/components/ui";
+import { loadFields } from "@/lib/studio";
+import { CustomFields } from "@/components/studio/CustomFields";
 
 export const metadata = { title: "Add branch" };
 
@@ -18,6 +20,7 @@ export default async function NewBranch({ searchParams }: { searchParams: Promis
     regions: await db.q<{ id: string; name: string }>("select id, name from regions where company_id=$1 and status='active' order by name", [ctx.companyId]),
     entities: await db.q<{ id: string; name: string }>("select id, name from legal_entities where company_id=$1 and status='active' order by name", [ctx.companyId]),
     partners: await db.q<{ id: string; name: string }>("select id, name from franchise_partners where company_id=$1 and status='active' order by name", [ctx.companyId]),
+    defs: await loadFields(db, ctx.companyId, "branches"),
   }));
   const pick = (r: { id: string; name: string }[]) => r.map((x) => ({ value: x.id, label: x.name }));
   const upgrade = err?.includes("plan limit");
@@ -43,6 +46,7 @@ export default async function NewBranch({ searchParams }: { searchParams: Promis
           )}
           <Field label="Time zone" name="timezone" defaultValue={ctx.company.timezone} hint="Task and checklist deadlines use this zone." />
           <Field label="Address" name="address" /><Field label="Phone" name="phone" type="tel" />
+          <CustomFields defs={o.defs} />
           <div className="flex gap-1"><SubmitButton pending="Adding…">Add branch</SubmitButton><Link href="/branches" className="inline-flex min-h-touch items-center px-2 text-sm font-medium text-brand">Cancel</Link></div>
         </form>
       </FormCard>

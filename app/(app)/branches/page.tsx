@@ -29,7 +29,7 @@ export default async function BranchesPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader title="Branches" description={`${total} location${total === 1 ? "" : "s"} in ${ctx.company.name}.`}
+      <PageHeader title={ctx.terms.branch?.plural ?? "Branches"} description={`${total} location${total === 1 ? "" : "s"} in ${ctx.company.name}.`}
         actions={canAdd ? <ButtonLink href="/branches/new" variant="primary">Add branch</ButtonLink> : undefined} />
       <Flash ok={ok} err={err} />
       <SavedViews ctx={ctx} page="/branches" query={new URLSearchParams({ ...(q && { q }), ...(status && { status }), ...(sort !== "name" && { sort }) }).toString()} />

@@ -10,6 +10,9 @@ import { Flash } from "@/components/ui/flash";
 import { ButtonLink, PageHeader, Panel, Status, TableWrap, Td, Th, type Tone } from "@/components/ui";
 import { BRANCH_LABEL, nextBranchStates, type BranchStatus } from "@/lib/rules/branch-lifecycle";
 import { fmtDateTime } from "@/lib/format";
+import { loadFields } from "@/lib/studio";
+import { CustomFields } from "@/components/studio/CustomFields";
+import { showValue, type CustomValues } from "@/lib/rules/studio";
 
 const TONE: Record<BranchStatus, Tone> = { planned: "neutral", opening: "info", active: "ok", suspended: "warn", closing: "warn", closed: "neutral" };
 
@@ -18,7 +21,7 @@ export default async function BranchPage({ params, searchParams }: { params: Pro
   const { id } = await params; const { ok, err } = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const d = await asUser(ctx.user.id, async (db) => {
-    const b = await db.one<{ id: string; name: string; code: string; status: BranchStatus; ownership: string; timezone: string; address: { line1?: string; phone?: string }; brand_id: string | null; region_id: string | null; legal_entity_id: string | null; partner: string | null; created_at: string }>(
+    const b = await db.one<{ id: string; name: string; code: string; status: BranchStatus; ownership: string; timezone: string; address: { line1?: string; phone?: string }; brand_id: string | null; region_id: string | null; legal_entity_id: string | null; partner: string | null; created_at: string; custom: CustomValues }>(
       "select b.*, p.name partner from branches b left join franchise_partners p on p.id = b.partner_id where b.id = $1", [id]);
     if (!b) return null;
     return {
@@ -28,6 +31,7 @@ export default async function BranchPage({ params, searchParams }: { params: Pro
       brands: await db.q<{ id: string; name: string }>("select id, name from brands where company_id=$1 and status='active' order by name", [ctx.companyId]),
       regions: await db.q<{ id: string; name: string }>("select id, name from regions where company_id=$1 and status='active' order by name", [ctx.companyId]),
       entities: await db.q<{ id: string; name: string }>("select id, name from legal_entities where company_id=$1 and status='active' order by name", [ctx.companyId]),
+      defs: await loadFields(db, ctx.companyId, "branches"),
       tasks: Number((await db.one<{ n: string }>("select count(*) n from tasks where branch_id=$1 and status in ('open','in_progress','blocked')", [id]))!.n),
     };
   });
@@ -59,10 +63,11 @@ export default async function BranchPage({ params, searchParams }: { params: Pro
                 <Field label="Time zone" name="timezone" defaultValue={b.timezone} />
               </div>
               <Field label="Address" name="address" defaultValue={b.address.line1 ?? ""} /><Field label="Phone" name="phone" type="tel" defaultValue={b.address.phone ?? ""} />
+              <CustomFields defs={d.defs} values={b.custom} />
               <SubmitButton>Save changes</SubmitButton>
             </form>
           </FormCard>
-        ) : <Panel title="Details"><p className="text-sm">{b.address.line1 || "No address"}<br />{b.address.phone}</p></Panel>}
+        ) : <Panel title="Details"><p className="text-sm">{b.address.line1 || "No address"}<br />{b.address.phone}</p>{d.defs.map((f) => <p key={f.key} className="mt-1 text-sm"><span className="text-muted">{f.label}: </span>{showValue(f, b.custom[f.key])}</p>)}</Panel>}
         <Panel title="History">
           <TableWrap label="Branch history"><thead><tr><Th>When</Th><Th>Status</Th><Th>Region</Th><Th>Brand</Th></tr></thead>
             <tbody>{d.history.map((h, i) => <tr key={i}><Td>{fmtDateTime(h.valid_from, ctx.company.timezone)}</Td><Td>{BRANCH_LABEL[h.status as BranchStatus] ?? h.status}</Td><Td>{h.region ?? "—"}</Td><Td>{h.brand ?? "—"}</Td></tr>)}</tbody></TableWrap>

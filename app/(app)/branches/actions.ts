@@ -5,6 +5,8 @@ import { fail, run, str, uuid } from "@/lib/flash";
 import { canMoveBranch, type BranchStatus } from "@/lib/rules/branch-lifecycle";
 import { canClose, closureChecklist } from "@/lib/rules/branch-closure";
 import { loadClosureSnapshot } from "@/lib/data/branches";
+import { loadFields } from "@/lib/studio";
+import { parseCustom } from "@/lib/rules/studio";
 
 const opt = (f: FormData, k: string) => { const v = str(f, k); return v === "" ? null : v; };
 
@@ -17,11 +19,13 @@ export async function createBranch(f: FormData) {
     const ownership = str(f, "ownership") === "franchise" ? "franchise" : "company";
     const partner = ownership === "franchise" ? opt(f, "partner_id") : null;
     if (ownership === "franchise" && !partner) fail("Choose the franchise partner who operates this branch.");
-    const id = await asUser(ctx.user.id, async (db) => (await db.one<{ id: string }>(
-      `insert into branches(company_id, name, code, brand_id, region_id, legal_entity_id, ownership, partner_id, timezone, status, address)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning id`,
+    const id = await asUser(ctx.user.id, async (db) => {
+      const cf = parseCustom(await loadFields(db, ctx.companyId, "branches"), (n) => f.get(n) as string | null); if (cf.error) fail(cf.error);
+      return (await db.one<{ id: string }>(
+      `insert into branches(company_id, name, code, brand_id, region_id, legal_entity_id, ownership, partner_id, timezone, status, address, custom)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) returning id`,
       [ctx.companyId, name, code, opt(f, "brand_id"), opt(f, "region_id"), opt(f, "legal_entity_id"), ownership, partner, str(f, "timezone") || ctx.company.timezone,
-       str(f, "status") === "opening" ? "opening" : "active", JSON.stringify({ line1: str(f, "address"), phone: str(f, "phone") })]))!.id);
+       str(f, "status") === "opening" ? "opening" : "active", JSON.stringify({ line1: str(f, "address"), phone: str(f, "phone") }), JSON.stringify(cf.values)]))!.id; });
     return `/branches/${id}`;
   });
 }
@@ -30,9 +34,12 @@ export async function updateBranch(f: FormData) {
   const ctx = await requireCtx(); const id = uuid(f, "id");
   return run(`/branches/${id}`, `/branches/${id}`, "Branch details saved.", async () => {
     const name = str(f, "name"); if (name.length < 2) fail("Enter the branch name.");
-    await asUser(ctx.user.id, (db) => db.q(
-      `update branches set name=$2, brand_id=$3, region_id=$4, legal_entity_id=$5, timezone=$6, address=$7 where id=$1`,
-      [id, name, opt(f, "brand_id"), opt(f, "region_id"), opt(f, "legal_entity_id"), str(f, "timezone") || ctx.company.timezone, JSON.stringify({ line1: str(f, "address"), phone: str(f, "phone") })]));
+    await asUser(ctx.user.id, async (db) => {
+      const cf = parseCustom(await loadFields(db, ctx.companyId, "branches"), (n) => f.get(n) as string | null); if (cf.error) fail(cf.error);
+      await db.q(
+      `update branches set name=$2, brand_id=$3, region_id=$4, legal_entity_id=$5, timezone=$6, address=$7, custom=$8 where id=$1`,
+      [id, name, opt(f, "brand_id"), opt(f, "region_id"), opt(f, "legal_entity_id"), str(f, "timezone") || ctx.company.timezone, JSON.stringify({ line1: str(f, "address"), phone: str(f, "phone") }), JSON.stringify(cf.values)]);
+    });
   });
 }
 

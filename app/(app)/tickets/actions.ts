@@ -2,6 +2,8 @@
 import { asUser } from "@/lib/db";
 import { requireCtx } from "@/lib/ctx";
 import { fail, run, str, uuid } from "@/lib/flash";
+import { loadFields } from "@/lib/studio";
+import { parseCustom } from "@/lib/rules/studio";
 
 const KINDS = ["internal", "customer_complaint", "incident"], PRI = ["low", "normal", "high", "urgent"];
 export async function createTicket(f: FormData) {
@@ -11,8 +13,9 @@ export async function createTicket(f: FormData) {
     if (!KINDS.includes(kind) || !PRI.includes(pri)) fail("Choose a type and priority.");
     const id = await asUser(ctx.user.id, async (db) => {
       const number = (await db.one<{ n: string }>("select app.next_number($1,'ticket','TCK') n", [ctx.companyId]))!.n;
-      return (await db.one<{ id: string }>("insert into tickets(company_id, branch_id, number, kind, category, title, body, priority, assignee_id, created_by) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id",
-        [ctx.companyId, str(f, "branch_id") || null, number, kind, str(f, "category") || "general", title, str(f, "body"), pri, str(f, "assignee_id") || null, ctx.user.id]))!.id;
+      const cf = parseCustom(await loadFields(db, ctx.companyId, "tickets"), (n) => f.get(n) as string | null); if (cf.error) fail(cf.error);
+      return (await db.one<{ id: string }>("insert into tickets(company_id, branch_id, number, kind, category, title, body, priority, assignee_id, created_by, custom) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning id",
+        [ctx.companyId, str(f, "branch_id") || null, number, kind, str(f, "category") || "general", title, str(f, "body"), pri, str(f, "assignee_id") || null, ctx.user.id, JSON.stringify(cf.values)]))!.id;
     });
     return `/tickets/${id}`;
   });

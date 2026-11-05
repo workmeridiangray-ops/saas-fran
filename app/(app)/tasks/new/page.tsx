@@ -8,13 +8,15 @@ import { Field, FormCard, Select, TextArea } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/forms";
 import { Flash } from "@/components/ui/flash";
 import { PageHeader } from "@/components/ui";
+import { loadFields } from "@/lib/studio";
+import { CustomFields } from "@/components/studio/CustomFields";
 
 export const metadata = { title: "New task" };
 
 export default async function NewTask({ searchParams }: { searchParams: Promise<{ err?: string }> }) {
   const ctx = await requireCtx(); const denied = guard(ctx, "tasks", { action: "create", module: "tasks", what: "creating tasks" }); if (denied) return denied;
   const { err } = await searchParams;
-  const o = await asUser(ctx.user.id, async (db) => ({ branches: await branchOptions(db, ctx.companyId), people: await memberOptions(db, ctx.companyId) }));
+  const o = await asUser(ctx.user.id, async (db) => ({ branches: await branchOptions(db, ctx.companyId), people: await memberOptions(db, ctx.companyId), defs: await loadFields(db, ctx.companyId, "tasks") }));
   return (
     <>
       <PageHeader title="New task" />
@@ -30,6 +32,7 @@ export default async function NewTask({ searchParams }: { searchParams: Promise<
             <Select label="Priority" name="priority" defaultValue="normal" options={["low", "normal", "high", "urgent"].map((v) => ({ value: v, label: v[0]!.toUpperCase() + v.slice(1) }))} />
           </div>
           <label className="flex min-h-touch items-center gap-1 text-sm"><input type="checkbox" name="requires_evidence" /> Require proof of completion</label>
+          <CustomFields defs={o.defs} />
           <div className="flex gap-1"><SubmitButton pending="Creating…">Create task</SubmitButton><Link href="/tasks" className="inline-flex min-h-touch items-center px-2 text-sm font-medium text-brand">Cancel</Link></div>
         </form>
       </FormCard>

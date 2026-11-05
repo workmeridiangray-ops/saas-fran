@@ -31,7 +31,7 @@ export default async function Tickets({ searchParams }: { searchParams: Promise<
       order by (t.status in ('resolved','closed')), array_position(array['urgent','high','normal','low'], t.priority), t.created_at desc limit 300`, [ctx.companyId, kind, status, q]));
   return (
     <>
-      <PageHeader title="Tickets" description="Internal requests, customer complaints and incidents, kept separate by type." actions={<>{ctx.has("configure", "tickets") && <ButtonLink href="/tickets?tab=sla">Deadlines</ButtonLink>}{ctx.has("create", "tickets") && <ButtonLink href="/tickets/new" variant="primary">Raise a ticket</ButtonLink>}</>} />
+      <PageHeader title={ctx.terms.ticket?.plural ?? "Tickets"} description="Internal requests, customer complaints and incidents, kept separate by type." actions={<>{ctx.has("configure", "tickets") && <ButtonLink href="/tickets?tab=sla">Deadlines</ButtonLink>}{ctx.has("create", "tickets") && <ButtonLink href="/tickets/new" variant="primary">Raise a ticket</ButtonLink>}</>} />
       <Flash ok={ok} err={err} />
       <SavedViews ctx={ctx} page="/tickets" query={new URLSearchParams({ ...(kind && { kind }), ...(status && { status }), ...(q && { q }) }).toString()} />
       <form className="mb-2 flex flex-wrap items-end gap-1.5" role="search" aria-label="Filter tickets">

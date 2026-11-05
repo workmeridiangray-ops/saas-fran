@@ -408,3 +408,27 @@ describe("scheduled report timing", () => {
   it("runs weekly reports only on their weekday (Thursday = 4)", () => { expect(isDue({ frequency: "weekly", weekday: 4, last_run_at: null }, at("2026-11-05"))).toBe(true); expect(isDue({ frequency: "weekly", weekday: 4, last_run_at: null }, at("2026-11-06"))).toBe(false); });
   it("runs monthly reports on the 1st", () => { expect(isDue({ frequency: "monthly", weekday: null, last_run_at: null }, at("2026-12-01"))).toBe(true); expect(isDue({ frequency: "monthly", weekday: null, last_run_at: null }, at("2026-12-02"))).toBe(false); });
 });
+
+import { keyFromLabel, parseCustom, parseOptions, showValue, type FieldDef } from "./studio";
+describe("configuration studio", () => {
+  const defs: FieldDef[] = [
+    { key: "seats", label: "Seats", kind: "number", options: [], required: false },
+    { key: "format", label: "Format", kind: "select", options: ["Kiosk", "Dine-in"], required: true },
+    { key: "opened", label: "Opened", kind: "date", options: [], required: false },
+    { key: "drive", label: "Drive-through", kind: "checkbox", options: [], required: false },
+  ];
+  const form = (o: Record<string, string>) => (n: string) => o[n] ?? null;
+  it("makes stable keys from labels", () => { expect(keyFromLabel("Seating capacity")).toBe("seating_capacity"); expect(keyFromLabel("  2nd floor! ")).toBe("f_2nd_floor"); });
+  it("reads valid values, skipping empty optional ones", () => {
+    const r = parseCustom(defs, form({ cf_seats: "40", cf_format: "Kiosk", cf_drive: "on" })); expect(r.error).toBeUndefined();
+    expect(r.values).toEqual({ seats: 40, format: "Kiosk", drive: true });
+  });
+  it("refuses bad numbers, dates, options and missing required fields", () => {
+    expect(parseCustom(defs, form({ cf_seats: "lots", cf_format: "Kiosk" })).error).toMatch(/Seats must be a number/);
+    expect(parseCustom(defs, form({ cf_format: "Kiosk", cf_opened: "31/12/2026" })).error).toMatch(/Opened must be a date/);
+    expect(parseCustom(defs, form({ cf_format: "Truck" })).error).toMatch(/Format: choose one/);
+    expect(parseCustom(defs, form({})).error).toMatch(/Format is required/);
+  });
+  it("shows values readably", () => { expect(showValue(defs[3]!, true)).toBe("Yes"); expect(showValue(defs[0]!, undefined)).toBe("—"); });
+  it("splits and de-duplicates options", () => { expect(parseOptions("a, b\nb ,c,,")).toEqual(["a", "b", "c"]); });
+});
