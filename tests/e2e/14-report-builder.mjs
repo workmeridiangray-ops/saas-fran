@@ -2,7 +2,7 @@ import { BASE, addBranch, expect, fetchIn, inviteAndJoin, open, ownerWithCompany
 
 console.log("Report builder: choose columns and filters, preview, save, download, respect access");
 const { browser, page: owner, errors } = await open();
-const CO = `Builder Co ${Date.now()}`; const ownerEmail = uniq("bldowner"), empEmail = uniq("bldemp"); let emp;
+const CO = `Builder Co ${Date.now()}`; const ownerEmail = uniq("bldowner"), empEmail = uniq("bldemp"); let emp; const RN = "Cost code report " + String(Date.now()).slice(-6);
 
 await step("a company with two branches, tasks and a custom field", async () => {
   await ownerWithCompany(owner, ownerEmail, "Bea Owner", CO); await addBranch(owner, "North Cafe", "NC1"); await addBranch(owner, "South Cafe", "SC1");
@@ -25,30 +25,30 @@ await step("filters narrow the rows and a bad date is refused", async () => {
 });
 await step("a report can be saved, listed and downloaded as CSV with the chosen columns only", async () => {
   await owner.goto(BASE + "/reports/builder?dataset=tasks&go=1&col=title&col=cf%3Acost_code&sort=title&dir=asc");
-  await owner.getByLabel("Report name").fill("Tasks with cost code"); await owner.getByRole("button", { name: "Save report" }).click(); await owner.getByText("Report saved.").waitFor();
-  await owner.getByText("Tasks with cost code").waitFor();
-  const [r] = await q("select id from custom_reports where name = 'Tasks with cost code'");
+  await owner.getByLabel("Report name").fill(`${RN}`); await owner.getByRole("button", { name: "Save report" }).click(); await owner.getByText("Report saved.").waitFor();
+  await owner.locator("span.font-medium", { hasText: `${RN}` }).first().waitFor();
+  const [r] = await q(`select id from custom_reports where name = '${RN}'`);
   const res = await fetchIn(owner, `/api/export/custom/${r.id}`); expect(res.status === 200, "status " + res.status);
   const lines = res.text.trim().split(/\r?\n/); expect(lines[0] === "Title,Cost code", "header: " + lines[0]); expect(lines.length === 3 && lines[1] === "Check fridge,CC-2" && lines[2] === "Mop floors,CC-1", res.text);
-  await owner.goto(BASE + "/reports"); await owner.locator("tr", { hasText: "Tasks with cost code (custom)" }).first().waitFor();
+  await owner.goto(BASE + "/reports"); await owner.locator("tr", { hasText: `${RN} (custom)` }).first().waitFor();
 });
 await step("a saved custom report can be scheduled and is emailed as a CSV attachment", async () => {
-  await owner.goto(BASE + "/reports"); const f = owner.locator('form:has(button:has-text("Schedule"))'); await f.getByLabel("Report").selectOption({ label: "Tasks with cost code (custom)" });
+  await owner.goto(BASE + "/reports"); const f = owner.locator('form:has(button:has-text("Schedule"))'); await f.getByLabel("Report").selectOption({ label: `${RN} (custom)` });
   await f.getByLabel(/^Send to/).fill(ownerEmail); await f.getByRole("button", { name: "Schedule" }).click(); await owner.getByText(/Schedule saved/).waitFor();
   const r = await fetch(BASE + "/api/cron/renewals", { method: "POST", headers: { Authorization: "Bearer test-cron-secret-0123456789" } }).then((x) => x.json()); expect(r.reports.sent === 1, JSON.stringify(r.reports));
-  const [m] = await q("select subject, body from identity.outbox where to_email = $1 and subject like 'Tasks with cost code report%' order by id desc limit 1", [ownerEmail.toLowerCase()]); expect(m && /\(2 rows\)/.test(m.body) && /attachment tasks-with-cost-code-\d{4}-\d{2}-\d{2}\.csv/.test(m.body), JSON.stringify(m));
+  const [m] = await q(`select subject, body from identity.outbox where to_email = $1 and subject like '${RN} report%' order by id desc limit 1`, [ownerEmail.toLowerCase()]); expect(m && /\(2 rows\)/.test(m.body) && /attachment cost-code-report-\d+-\d{4}-\d{2}-\d{2}\.csv/.test(m.body), JSON.stringify(m));
 });
 await step("the same name can't be saved twice", async () => {
-  await owner.goto(BASE + "/reports/builder?dataset=tasks&go=1&col=title"); await owner.getByLabel("Report name").fill("Tasks with cost code"); await owner.getByRole("button", { name: "Save report" }).click(); await owner.getByText("That already exists.").waitFor();
+  await owner.goto(BASE + "/reports/builder?dataset=tasks&go=1&col=title"); await owner.getByLabel("Report name").fill(`${RN}`); await owner.getByRole("button", { name: "Save report" }).click(); await owner.getByText("That already exists.").waitFor();
 });
 await step("an employee can't build or download it", async () => {
   await emp.goto(BASE + "/reports/builder"); expect(await emp.getByRole("button", { name: "Preview" }).count() === 0, "an employee can use the builder");
-  const [r] = await q("select id from custom_reports where name = 'Tasks with cost code'");
+  const [r] = await q(`select id from custom_reports where name = '${RN}'`);
   const res = await fetchIn(emp, `/api/export/custom/${r.id}`); expect(res.status === 403 || res.status === 404, "employee got " + res.status);
 });
 await step("removing a saved report removes it", async () => {
-  await owner.goto(BASE + "/reports"); await owner.locator("li", { hasText: "Tasks with cost code" }).getByRole("button", { name: "Remove" }).click(); await owner.getByText("Report removed.").waitFor();
-  expect((await q("select count(*)::int n from custom_reports where name = 'Tasks with cost code'"))[0].n === 0, "still there");
+  await owner.goto(BASE + "/reports"); await owner.locator("li", { hasText: "Tasks ·" }).getByRole("button", { name: "Remove" }).click(); await owner.getByText("Report removed.").waitFor();
+  expect((await q(`select count(*)::int n from custom_reports where name = '${RN}'`))[0].n === 0, "still there");
 });
 await step("no browser errors", async () => expect(errors.length === 0, errors.join(" | ")));
 await browser.close(); process.exit(summary() ? 1 : 0);

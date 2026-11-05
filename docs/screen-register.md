@@ -39,7 +39,7 @@ Permissions are `resource:action` from `lib/rules/permissions.ts`. A role is a b
 | Platform admin | `/platform`, `/platform/companies`, `/platform/companies/[id]`, `/platform/invoices`, `/platform/plans` | platform staff | all (service access) | Suspend/reactivate with a recorded reason; versioned plans; mark invoices paid; every action audited under the operator's id |
 
 ## Not built
-Single sign-on; a card payment gateway; offline inspection capture; supplier, contractor and external-auditor portals; studio custom forms and workflow builder; report builder datasets beyond branches, tasks and tickets, joins, charts and scheduling of saved reports; campaign management; payroll and biometric attendance; industry modules beyond the opening templates; Spanish beyond menus, shell, sign-in and the command centre. See `docs/release-plan.md`.
+Single sign-on; a card payment gateway; offline inspection capture; supplier, contractor and external-auditor portals; studio custom forms and workflow builder; report builder datasets beyond branches, tasks and tickets, joins and charts; campaign management; payroll and biometric attendance; industry modules beyond the opening templates; Spanish beyond menus, shell, sign-in and the command centre. See `docs/release-plan.md`.
 
 ## Design acceptance flows
 | # | Flow | Covered by |
