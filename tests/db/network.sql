@@ -115,3 +115,27 @@ select t.check('send_test_event queues a ping for your own endpoint', (select co
 select t.denied('customers cannot insert deliveries directly', $$insert into webhook_deliveries(company_id, endpoint_id, event, payload) select company_id, id, 'x', '{}' from webhook_endpoints limit 1$$);
 select t.as_user(:mgr);
 select t.denied('without integrations access you cannot send test events', $$select public.send_test_event('55555555-aaaa-0000-0000-000000000002')$$);
+
+-- ============================================================ rosters and leave
+\set emp '''55555555-0000-0000-0000-000000000004'''
+select t.as_user(:own);
+select create_company('Roster Co', 'roster-co') as rcid \gset
+insert into branches(id, company_id, name, code, status) values ('55555555-2222-0000-0000-0000000000a1', :'rcid', 'Shop', 'SH1', 'active');
+insert into memberships(id, company_id, user_id, status) values ('55555555-5555-0000-0000-0000000000a1', :'rcid', :emp, 'active');
+insert into membership_roles(membership_id, role_id, company_id) select '55555555-5555-0000-0000-0000000000a1', id, :'rcid' from roles where company_id = :'rcid' and name = 'Employee';
+insert into shifts(company_id, branch_id, user_id, starts_at, ends_at, created_by) values (:'rcid', '55555555-2222-0000-0000-0000000000a1', :emp, '2027-03-01 09:00+00', '2027-03-01 17:00+00', :own);
+select t.denied('nobody works two overlapping shifts', $$insert into shifts(company_id, branch_id, user_id, starts_at, ends_at, created_by) select company_id, branch_id, user_id, '2027-03-01 16:00+00', '2027-03-01 20:00+00', created_by from shifts limit 1$$);
+select t.denied('a shift cannot be longer than 16 hours', $$insert into shifts(company_id, branch_id, user_id, starts_at, ends_at, created_by) select company_id, branch_id, user_id, '2027-03-02 00:00+00', '2027-03-02 20:00+00', created_by from shifts limit 1$$);
+select t.as_user(:emp);
+select t.check('an employee sees their own shifts', (select count(*) from shifts) = 1);
+select t.denied('an employee cannot create shifts', $$insert into shifts(company_id, branch_id, user_id, starts_at, ends_at, created_by) select company_id, branch_id, user_id, '2027-03-05 09:00+00', '2027-03-05 17:00+00', user_id from shifts limit 1$$);
+insert into leave_requests(company_id, user_id, from_date, to_date, reason) values (:'rcid', :emp, '2027-03-01', '2027-03-03', 'Family event');
+select t.denied('an employee cannot approve their own leave', $$update leave_requests set status = 'approved'$$);
+select t.denied('an employee cannot file leave for someone else', $$insert into leave_requests(company_id, user_id, from_date, to_date) values ((select company_id from leave_requests limit 1), '55555555-0000-0000-0000-000000000001', '2027-04-01', '2027-04-02')$$);
+select t.as_user(:own);
+select t.denied('leave over an existing shift can''t be approved until the shift is moved', $$update leave_requests set status = 'approved' where reason = 'Family event'$$);
+delete from shifts where true;
+update leave_requests set status = 'approved', decided_by = :own where reason = 'Family event';
+select t.denied('a shift can''t be set during approved leave', $$insert into shifts(company_id, branch_id, user_id, starts_at, ends_at, created_by) values ((select company_id from leave_requests limit 1), '55555555-2222-0000-0000-0000000000a1', '55555555-0000-0000-0000-000000000004', '2027-03-02 09:00+00', '2027-03-02 17:00+00', '55555555-0000-0000-0000-000000000001')$$);
+select t.denied('a rejection needs a reason', $$update leave_requests set status = 'rejected' where false or reason = 'Family event'$$);
+select 'roster tests passed' as result;

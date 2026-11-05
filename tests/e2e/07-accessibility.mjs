@@ -4,7 +4,7 @@ import { BASE, addBranch, expect, open, ownerWithCompany, step, summary, uniq } 
 console.log("Accessibility (axe, WCAG 2.1 A/AA) and mobile layout");
 const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 const { browser, ctx, page, errors } = await open();
-const PAGES = ["/", "/branches", "/branches/new", "/tasks", "/tasks/new", "/checklists", "/approvals", "/approvals?tab=rules", "/inspections", "/inspections?tab=templates", "/inspections/new", "/purchasing", "/purchasing?tab=suppliers", "/purchasing/new", "/tickets", "/tickets/new", "/knowledge", "/knowledge/new", "/training", "/training/new", "/assets", "/assets?tab=licences", "/people", "/people/roles", "/organisation", "/reports", "/audit", "/billing", "/notifications", "/account", "/workspaces", "/onboarding"];
+const PAGES = ["/", "/branches", "/branches/new", "/tasks", "/tasks/new", "/checklists", "/approvals", "/approvals?tab=rules", "/inspections", "/inspections?tab=templates", "/inspections/new", "/purchasing", "/purchasing?tab=suppliers", "/purchasing/new", "/tickets", "/tickets/new", "/knowledge", "/knowledge/new", "/training", "/training/new", "/assets", "/assets?tab=licences", "/people", "/people/roles", "/organisation", "/reports", "/audit", "/billing", "/notifications", "/account", "/workspaces", "/onboarding", "/stock", "/stock?tab=moves", "/projects", "/projects/new", "/franchise", "/franchise/new", "/integrations", "/roster", "/roster?tab=leave", "/tickets?tab=sla", "/reports"];
 
 async function scan(p, url) {
   await p.goto(BASE + url, { waitUntil: "domcontentloaded" }); await p.locator("main").first().waitFor({ timeout: 8000 }).catch(() => { throw new Error(`${url} did not render (ended at ${p.url()})`); });

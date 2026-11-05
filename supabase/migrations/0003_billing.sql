@@ -196,12 +196,12 @@ begin
     {"resource":"approvals","actions":["view","approve","reject"]},{"resource":"purchasing","actions":["view","create","edit","approve"]},
     {"resource":"inspections","actions":["view"]},{"resource":"actions","actions":["view","edit"]},{"resource":"training","actions":["view"]},{"resource":"documents","actions":["view"]},
     {"resource":"tickets","actions":["view","create","edit"]},{"resource":"sales","actions":["view","create"]},
-    {"resource":"assets","actions":["view","create","edit"]},{"resource":"projects","actions":["view","create","edit"]},{"resource":"inventory","actions":["view","create","edit"]},{"resource":"reports","actions":["view","export"]},{"resource":"people","actions":["view"]}]') returning id into mgr_r;
+    {"resource":"assets","actions":["view","create","edit"]},{"resource":"projects","actions":["view","create","edit"]},{"resource":"inventory","actions":["view","create","edit"]},{"resource":"reports","actions":["view","export"]},{"resource":"people","actions":["view","create","edit","approve"]}]') returning id into mgr_r;
   insert into roles(company_id, name, grants) values
     (cid, 'Finance', '[{"resource":"royalties","actions":["view","create","edit","approve","pay"]},{"resource":"sales","actions":["view"]},
       {"resource":"billing","actions":["view"]},{"resource":"approvals","actions":["view","approve"]},{"resource":"reports","actions":["view","export"]},{"resource":"branches","actions":["view"]},{"resource":"franchise","actions":["view"]}]'),
     (cid, 'Auditor / inspector', '[{"resource":"inspections","actions":["view","create","edit","approve"]},{"resource":"actions","actions":["view","create","edit"]},{"resource":"branches","actions":["view"]},{"resource":"tasks","actions":["view","create"]}]'),
-    (cid, 'Employee', '[{"resource":"tasks","actions":["view","edit"],"ownOnly":true},{"resource":"training","actions":["view"]},{"resource":"documents","actions":["view"]},{"resource":"tickets","actions":["view","create"]}]');
+    (cid, 'Employee', '[{"resource":"people","actions":["view"],"ownOnly":true},{"resource":"tasks","actions":["view","edit"],"ownOnly":true},{"resource":"training","actions":["view"]},{"resource":"documents","actions":["view"]},{"resource":"tickets","actions":["view","create"]}]');
 
   insert into memberships(company_id, user_id, status, approval_limit_minor) values (cid, auth.uid(), 'active', 1000000000000) returning id into mid;
   insert into membership_roles(membership_id, role_id, company_id) values (mid, owner_r, cid);

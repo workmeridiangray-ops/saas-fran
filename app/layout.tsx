@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "@fontsource-variable/inter";
 import "./globals.css";
+import { Suspense } from "react";
 import { Remember } from "@/components/ui/Remember";
 
 export const metadata: Metadata = {
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen font-sans text-base antialiased">{children}<Remember /></body>
+      <body className="min-h-screen font-sans text-base antialiased">{children}<Suspense fallback={null}><Remember /></Suspense></body>
     </html>
   );
 }

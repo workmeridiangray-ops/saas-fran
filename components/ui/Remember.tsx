@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 
 /**
  * Two promises, for every form in the app:
@@ -13,18 +14,23 @@ const fields = (f: HTMLFormElement) => [...f.elements].filter((e): e is HTMLInpu
 const sig = (f: HTMLFormElement, i: number) => `${KEY}${location.pathname}:${i}:${fields(f).map((e) => e.name).join(",")}`;
 
 export function Remember() {
+  const path = usePathname(); const search = useSearchParams().toString();
+  // Runs on every navigation, not just the first load: a failed save comes back as a client-side transition.
   useEffect(() => {
-    let dirty = false; let submitting = false;
-    const forms = () => [...document.forms].filter(isWorkForm);
     try {
-      const failed = new URLSearchParams(location.search).has("err");
-      forms().forEach((f, i) => {
+      const failed = new URLSearchParams(search).has("err");
+      [...document.forms].filter(isWorkForm).forEach((f, i) => {
         const raw = sessionStorage.getItem(sig(f, i)); if (!raw) return;
         if (failed) { const saved = JSON.parse(raw) as Record<string, string | string[]>; for (const e of fields(f)) { const v = saved[e.name]; if (v === undefined) continue;
           if (e instanceof HTMLInputElement && (e.type === "checkbox" || e.type === "radio")) e.checked = Array.isArray(v) ? v.includes(e.value) : v === e.value; else if (!Array.isArray(v)) e.value = v; } }
         sessionStorage.removeItem(sig(f, i));
       });
     } catch { /* storage unavailable: forms simply start empty */ }
+  }, [path, search]);
+
+  useEffect(() => {
+    let dirty = false; let submitting = false;
+    const forms = () => [...document.forms].filter(isWorkForm);
     const onInput = (ev: Event) => { const f = (ev.target as HTMLElement).closest("form"); if (f && isWorkForm(f)) dirty = true; };
     const onSubmit = (ev: Event) => {
       submitting = true; const f = ev.target as HTMLFormElement; if (!isWorkForm(f)) return;

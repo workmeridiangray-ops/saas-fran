@@ -23,6 +23,7 @@ export const NAV: NavGroup[] = [
   ]},
   { label: "People", items: [
     { label: "People & access", href: "/people", resource: "users", module: "people", icon: "users" },
+    { label: "Roster & leave", href: "/roster", resource: "people", module: "people", icon: "calendar" },
     { label: "Training", href: "/training", resource: "training", module: "training", icon: "cap" },
   ]},
   { label: "Purchasing", items: [{ label: "Purchasing", href: "/purchasing", resource: "purchasing", module: "purchasing", icon: "cart" },

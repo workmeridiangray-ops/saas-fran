@@ -6,6 +6,7 @@ import { Flash } from "@/components/ui/flash";
 import { Field, FormCard } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/forms";
 import { saveSla } from "./actions";
+import { SavedViews } from "@/components/ui/SavedViews";
 import { Button, ButtonLink, PageHeader, StateMessage, Status, TableWrap, Td, Th, type Tone } from "@/components/ui";
 import { fmtDate, titleCase } from "@/lib/format";
 
@@ -32,6 +33,7 @@ export default async function Tickets({ searchParams }: { searchParams: Promise<
     <>
       <PageHeader title="Tickets" description="Internal requests, customer complaints and incidents, kept separate by type." actions={<>{ctx.has("configure", "tickets") && <ButtonLink href="/tickets?tab=sla">Deadlines</ButtonLink>}{ctx.has("create", "tickets") && <ButtonLink href="/tickets/new" variant="primary">Raise a ticket</ButtonLink>}</>} />
       <Flash ok={ok} err={err} />
+      <SavedViews ctx={ctx} page="/tickets" query={new URLSearchParams({ ...(kind && { kind }), ...(status && { status }), ...(q && { q }) }).toString()} />
       <form className="mb-2 flex flex-wrap items-end gap-1.5" role="search" aria-label="Filter tickets">
         <div><label htmlFor="q" className="mb-0.5 block text-xs font-medium text-muted">Search</label><input id="q" name="q" defaultValue={q} className="min-h-touch rounded-md border border-line-strong bg-surface px-1.5 text-sm" /></div>
         <div><label htmlFor="kind" className="mb-0.5 block text-xs font-medium text-muted">Type</label><select id="kind" name="kind" defaultValue={kind} className="min-h-touch rounded-md border border-line-strong bg-surface px-1.5 text-sm"><option value="">All types</option>{["internal", "customer_complaint", "incident"].map((k) => <option key={k} value={k}>{titleCase(k)}</option>)}</select></div>

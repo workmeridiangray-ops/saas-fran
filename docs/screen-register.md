@@ -26,10 +26,17 @@ Permissions are `resource:action` from `lib/rules/permissions.ts`. A role is a b
 | Audit log | `/audit` | `organisation:configure` | `audit_log` | Append-only, field names only |
 | Notifications, search | `/notifications`, `/search` | any member | notifications + record tables | Search only returns what you can see |
 | Plan & billing | `/billing` | `billing:*` | plans, subscriptions, invoices | Over-limit explained, nothing deleted; modules with unresolved work stay usable; scheduled to renewal; issued invoices immutable; closure and export |
+| Franchise | Pipeline, territories, agreements, renewals `/franchise`, add `/franchise/new`, applicant `/franchise/[id]`, agreement `/franchise/agreements/[id]`, public enquiry `/apply/[company]` | `franchise:*` | applicants, checks, territories, agreements, fees | Stages move one step at a time; a territory is held by one applicant or partner; approval needs every check verified and creates an *approved* (not active) partner; signing activates; signed terms are immutable; renewals are new versions; reminders; transfer and termination keep history |
+| Opening projects | `/projects`, `/projects/new`, `/projects/[id]` | `projects:*` | projects, project items | Starts from an industry template (restaurant, print, retail, education, service); evidence where required; blockers stop launch; launch needs approval authority and opens the branch; a launched checklist is a record |
+| Stock | `/stock` (levels, movements) | `inventory:*` | stock movements (append-only), reorder points | Goods received feed the ledger; the level is the sum and can't go below zero; use, wastage, transfers and counts need reasons where they change the book figure |
+| Roster & leave | `/roster` (week, my leave, leave to decide) | `people:*` | shifts, leave requests | No overlapping shifts, none during approved leave, leave can't be approved over a shift; employees see only their own |
+| Integrations | `/integrations`, `/api/v1/*`, `/api/cron/webhooks` | `integrations:*` | API keys (hashed), webhooks, deliveries | Secrets shown once and never readable again; signed webhooks with timestamps; retries with backoff and a log; private-network targets refused; read-only API with scopes and a rate limit |
+| Reports (extended) | schedules, export history on `/reports` | `reports:*` | schedules, runs | Scheduled CSV runs as the person who set it up and stops if they lose access; every export is logged |
+| Table views | saved views on branches, tasks and tickets; comfortable/compact rows | any member | saved views | Private to you |
 | Platform admin | `/platform`, `/platform/companies`, `/platform/companies/[id]`, `/platform/invoices`, `/platform/plans` | platform staff | all (service access) | Suspend/reactivate with a recorded reason; versioned plans; mark invoices paid; every action audited under the operator's id |
 
 ## Not built
-Franchise applicant pipeline and agreements; opening projects; stock ledger; configuration studio (custom fields, form and workflow builders); integrations, webhooks and APIs; supplier, contractor and external-auditor portals; offline inspection capture; shift rosters and leave; campaign management; major-incident workspace and SLA configuration; saved views and column controls on tables; SSO; payment gateway. See `docs/release-plan.md`.
+Single sign-on; a card payment gateway; offline inspection capture; supplier, contractor and external-auditor portals; the configuration studio (custom fields, form and workflow builders, terminology); a custom report builder and per-user column pickers; campaign management; payroll and biometric attendance; industry modules beyond the opening templates (print-job tracking, food-safety logs, student services and so on); multi-language interface. See `docs/release-plan.md`.
 
 ## Design acceptance flows
 | # | Flow | Covered by |
@@ -39,4 +46,5 @@ Franchise applicant pipeline and agreements; opening projects; stock ledger; con
 | 3 | Purchase request → approval → order → partial receipt | `tests/e2e/02-purchasing.mjs` |
 | 4 | Royalty calculation → review → statement → payment allocation | `tests/e2e/04-royalties.mjs` |
 | 5 | Subscription change → limit validation → billing confirmation | `tests/e2e/05-billing.mjs` |
+| 7 | Franchise enquiry → pipeline → approval → agreement → active partner | `tests/e2e/09-franchise.mjs` |
 | 6 | Branch closure → outstanding-work review → access removal | `tests/e2e/08-closure.mjs` |

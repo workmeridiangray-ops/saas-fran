@@ -11,7 +11,9 @@ Scope and design direction: [`docs/project-brief.md`](docs/project-brief.md) · 
 1. **Email.** Set `SMTP_URL`. Without it nobody receives confirmation, reset or invitation emails.
 2. **Card payments, if you want them.** Billing ships as invoice + manual "mark paid". A gateway needs your account; see "Payments" in the operations guide.
 
-**Not built** (see the release plan): franchise applicant pipeline and agreements, opening projects, stock ledger, configuration studio (custom forms and workflows), integrations and webhooks, supplier and contractor portals, offline inspections, SSO, payroll or HR, and industry-specific modules. The interface is English only; money and dates follow the company's currency and time zone.
+**Also built:** franchise pipeline with agreements, fees, renewals, transfer and a public enquiry form; opening projects with industry templates; a stock ledger; region and brand scoping; ticket SLAs with escalation; API keys, a read API and signed webhooks; rosters and leave; saved table views; scheduled reports with export history.
+
+**Not built** (see the release plan): single sign-on, a card payment gateway, offline inspection capture, supplier and contractor portals, the configuration studio (custom fields and form/workflow builders), a custom report builder, campaigns, and industry modules beyond the opening templates. The interface is English only; money and dates follow the company's currency and time zone.
 
 Screens: [dashboard](docs/screens/dashboard.png) · [approvals](docs/screens/approvals.png) · [orders](docs/screens/purchasing-order.png) · [billing](docs/screens/billing.png) · [roles](docs/screens/roles.png) · [phone](docs/screens/dashboard-phone.png)
 
@@ -48,4 +50,4 @@ The end-to-end suite covers each acceptance flow (registration → first branch 
 - Search is substring matching over a few record types, adequate for thousands of records per company, not millions.
 - Files are stored in Postgres (5 MB limit each). For heavy media use, move them to object storage.
 - Realtime updates aren't implemented; pages show fresh data on load or after an action.
-- Access can be limited **by branch** in the app. The database also understands region and brand scope, but the People screen doesn't offer them and most records don't carry a region or brand, so a person scoped that way would see little. Treat region and brand scoping as not yet available.
+- Access can be limited by **region** (including the regions beneath it), **brand** and **branch**. A person must match every group you tick. Records that don't belong to a branch (company-wide tasks, for example) are invisible to anyone scoped below the whole company.

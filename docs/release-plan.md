@@ -10,8 +10,11 @@ Accounts and security (email confirmation, lockout, two-factor, reset, sessions)
 - Privacy policy, terms and a data-processing agreement reviewed by a lawyer; these are not provided.
 - A restore drill and an external security review before sensitive data goes in.
 
-## Release 2: not built
-Franchise applicant pipeline, agreements and renewals; opening projects; stock ledger and transfers; configuration studio (custom fields, forms, workflows, terminology); region and brand scoping in the People screen and on all records; saved views and column controls on tables; scheduled reports; integrations, webhooks and API credentials; supplier, contractor and external-auditor portals; SLA and escalation rules; shift rosters and leave; campaigns; SSO; object storage for large files.
+## Built since the first release
+Franchise applicant pipeline, territories, agreements, fees, renewals and ownership transfer, with a public enquiry form; opening projects with industry templates and a launch gate; stock ledger; region and brand scoping across every record; ticket SLAs and escalation; API keys, a read API and signed webhooks with a delivery log; saved table views and density; scheduled reports and export history; rosters and leave; form input preserved after an error, and a warning before leaving unsaved edits.
+
+## Still not built
+Single sign-on; a card gateway; offline inspection capture; supplier, contractor and auditor portals; the configuration studio (custom fields, form and workflow builders, terminology settings); a custom report builder; campaigns; per-user column pickers; industry modules beyond the opening templates; more than one interface language.
 
 ## Separately priced extensions
 Industry modules (print production, restaurant food-safety, education, retail, service jobs); offline inspection capture; e-signature and legal-document generation; payroll, biometric attendance and recruitment; video hosting and proctored exams; advertising and social publishing; a full customer CRM.

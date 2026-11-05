@@ -16,6 +16,7 @@
 | `MAIL_FROM` | no | Sender shown on email. |
 | `RETENTION_DAYS` | no | Days a closed company stays before deletion. Default 90, minimum 30. |
 | `BILLING_INSTRUCTIONS` | no | Text shown with unpaid invoices (bank details). |
+| `WEBHOOK_ALLOW_PRIVATE` | **never in production** | Set to `1` only in automated tests, to let webhooks reach `http://127.0.0.1`. Leaving it on lets customers point webhooks at your internal network. |
 
 ## Deploy
 ```bash
@@ -33,11 +34,16 @@ DATABASE_URL=... bash scripts/make-staff.sh you@yourcompany.com super_admin
 ```
 `/platform` then appears. Roles: `super_admin` (everything), `billing` (invoices, suspend/reactivate), `support` (read-only), `technical`.
 
+## Scheduled jobs
+Two calls, both with `Authorization: Bearer $CRON_SECRET`:
+- **Every minute:** `POST /api/cron/webhooks`, which sends due webhook deliveries and retries failures.
+- **Daily:** `POST /api/cron/renewals` (below).
+
 ## Daily job
 ```bash
 curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/renewals"
 ```
-It is safe to run repeatedly. It: invoices subscriptions whose period ended; applies scheduled plan changes; marks unpaid companies past-due, then read-only after 7 days; deletes companies past their retention period. If it stops running, nobody is invoiced and nobody is suspended.
+It is safe to run repeatedly. It: invoices subscriptions whose period ended; applies scheduled plan changes; marks unpaid companies past-due, then read-only after 7 days; escalates late tickets and tasks; releases lapsed territory reservations, activates and expires agreements and sends renewal reminders; emails due scheduled reports; delivers webhooks; deletes companies past their retention period. If it stops running, nobody is invoiced and nobody is suspended.
 
 ## Payments
 Invoices are issued automatically at the plan's price. The shipped billing provider is **manual**: customers pay by bank transfer (or any off-platform method) and a billing admin presses **Mark paid** in `/platform/invoices`, which reactivates the company. There is no card gateway in this repository. To add one, implement `BillingProvider` (`lib/billing/provider.ts`), show its checkout link on the billing page, and call `select app.mark_invoice_paid('<invoice id>')` from a **signature-verified** webhook. Do not mark invoices paid from an unauthenticated request.

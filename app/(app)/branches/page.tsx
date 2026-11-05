@@ -5,6 +5,7 @@ import { requireCtx } from "@/lib/ctx";
 import { guard } from "@/lib/guard";
 import { Flash } from "@/components/ui/flash";
 import { Button, ButtonLink, PageHeader, StateMessage, Status, TableWrap, Td, Th, type Tone } from "@/components/ui";
+import { SavedViews } from "@/components/ui/SavedViews";
 import { BRANCH_LABEL, type BranchStatus } from "@/lib/rules/branch-lifecycle";
 
 export const metadata = { title: "Branches" };
@@ -31,6 +32,7 @@ export default async function BranchesPage({ searchParams }: { searchParams: Pro
       <PageHeader title="Branches" description={`${total} location${total === 1 ? "" : "s"} in ${ctx.company.name}.`}
         actions={canAdd ? <ButtonLink href="/branches/new" variant="primary">Add branch</ButtonLink> : undefined} />
       <Flash ok={ok} err={err} />
+      <SavedViews ctx={ctx} page="/branches" query={new URLSearchParams({ ...(q && { q }), ...(status && { status }), ...(sort !== "name" && { sort }) }).toString()} />
       <form className="mb-2 flex flex-wrap items-end gap-1.5" role="search" aria-label="Filter branches">
         <div className="relative">
           <label htmlFor="q" className="mb-0.5 block text-xs font-medium text-muted">Search</label>

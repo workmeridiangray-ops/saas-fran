@@ -400,3 +400,11 @@ describe("integration security", () => {
   });
   it("backs off between retries", () => { expect([1, 2, 3, 4, 5].map(nextDelay)).toEqual([60, 300, 1800, 7200, 43200]); expect(nextDelay(9)).toBe(43200); });
 });
+
+import { isDue } from "./../reports-schedule";
+describe("scheduled report timing", () => {
+  const at = (iso: string) => new Date(iso + "T08:00:00Z");
+  it("runs daily reports once a day", () => { expect(isDue({ frequency: "daily", weekday: null, last_run_at: null }, at("2026-11-05"))).toBe(true); expect(isDue({ frequency: "daily", weekday: null, last_run_at: at("2026-11-05") }, at("2026-11-05"))).toBe(false); expect(isDue({ frequency: "daily", weekday: null, last_run_at: at("2026-11-04") }, at("2026-11-05"))).toBe(true); });
+  it("runs weekly reports only on their weekday (Thursday = 4)", () => { expect(isDue({ frequency: "weekly", weekday: 4, last_run_at: null }, at("2026-11-05"))).toBe(true); expect(isDue({ frequency: "weekly", weekday: 4, last_run_at: null }, at("2026-11-06"))).toBe(false); });
+  it("runs monthly reports on the 1st", () => { expect(isDue({ frequency: "monthly", weekday: null, last_run_at: null }, at("2026-12-01"))).toBe(true); expect(isDue({ frequency: "monthly", weekday: null, last_run_at: null }, at("2026-12-02"))).toBe(false); });
+});

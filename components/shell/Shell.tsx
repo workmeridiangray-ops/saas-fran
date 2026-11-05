@@ -1,15 +1,16 @@
 import Link from "next/link";
 import {
   Bell, BookOpen, Box, CheckSquare, ChartColumn, ClipboardCheck, Coins, CreditCard, GraduationCap, ListChecks, ListTodo, LayoutDashboard,
-  LifeBuoy, Menu, Network, Search, ShieldCheck, ShoppingCart, Store, Users, Wrench, ChevronsUpDown, LogOut, UserCog, Rocket, Handshake, Plug, type LucideIcon,
+  LifeBuoy, Menu, Network, Search, ShieldCheck, ShoppingCart, Store, Users, Wrench, ChevronsUpDown, LogOut, UserCog, Rocket, Handshake, Plug, CalendarDays, type LucideIcon,
 } from "lucide-react";
 import { NAV } from "@/lib/nav";
 import type { Ctx } from "@/lib/ctx";
 import { signOut } from "@/app/(auth)/actions";
+import { Density } from "@/components/ui/Density";
 
 const ICONS: Record<string, LucideIcon> = {
   layout: LayoutDashboard, check: CheckSquare, list: ListTodo, ticks: ListChecks, clipboard: ClipboardCheck, book: BookOpen, life: LifeBuoy,
-  store: Store, tree: Network, wrench: Wrench, users: Users, cap: GraduationCap, cart: ShoppingCart, coins: Coins, chart: ChartColumn, card: CreditCard, shield: ShieldCheck, box: Box, rocket: Rocket, handshake: Handshake, plug: Plug,
+  store: Store, tree: Network, wrench: Wrench, users: Users, cap: GraduationCap, cart: ShoppingCart, coins: Coins, chart: ChartColumn, card: CreditCard, shield: ShieldCheck, box: Box, rocket: Rocket, handshake: Handshake, plug: Plug, calendar: CalendarDays,
 };
 
 function NavList({ ctx }: { ctx: Ctx }) {
@@ -89,6 +90,7 @@ export function Shell({ ctx, children }: { ctx: Ctx; children: React.ReactNode }
             <input id="global-search" name="q" placeholder="Search branches, tasks, tickets, documents" className="min-h-touch w-full rounded-md border border-line bg-canvas pl-4 pr-1.5 text-sm placeholder:text-muted" />
           </form>
           <div className="ml-auto flex items-center gap-1.5">
+            <Density />
             <span title="What you can see is limited to this scope" className="hidden rounded-full border border-line bg-canvas px-1.5 py-0.5 text-xs text-muted md:inline">
               Scope: {scoped ? "limited to your assignment" : "whole company"}
             </span>

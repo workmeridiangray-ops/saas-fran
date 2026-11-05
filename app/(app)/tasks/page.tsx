@@ -5,6 +5,7 @@ import { guard } from "@/lib/guard";
 import { Flash } from "@/components/ui/flash";
 import { Button, ButtonLink, PageHeader, StateMessage, Status, TableWrap, Td, Th, type Tone } from "@/components/ui";
 import { fmtDateTime, titleCase } from "@/lib/format";
+import { SavedViews } from "@/components/ui/SavedViews";
 
 export const metadata = { title: "Tasks" };
 const TONE: Record<string, Tone> = { open: "info", in_progress: "info", blocked: "warn", done: "ok", cancelled: "neutral" };
@@ -25,6 +26,7 @@ export default async function Tasks({ searchParams }: { searchParams: Promise<{ 
       <PageHeader title="Tasks" description="Work assigned across the network. Deadlines show in each branch's own time zone."
         actions={ctx.has("create", "tasks") ? <ButtonLink href="/tasks/new" variant="primary">New task</ButtonLink> : undefined} />
       <Flash ok={ok} err={err} />
+      <SavedViews ctx={ctx} page="/tasks" query={new URLSearchParams({ ...(filter !== "all" && { filter }), ...(status && { status }), ...(q && { q }) }).toString()} />
       <div className="mb-2 flex flex-wrap items-end gap-1.5">
         {tab("all", "All")}{tab("mine", "Assigned to me")}{tab("overdue", "Overdue")}
         <form className="flex flex-wrap items-end gap-1 sm:ml-auto" role="search" aria-label="Filter tasks"><input type="hidden" name="filter" value={filter} />
