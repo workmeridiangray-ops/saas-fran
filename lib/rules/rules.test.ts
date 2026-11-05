@@ -352,3 +352,26 @@ describe("opening projects", () => {
     expect(templateFor("nonsense")).toBe(OPENING_TEMPLATES.general);
   });
 });
+
+import { agreementProblem, approvalBlockers, canMove, daysUntil, nextStart, renewalDue } from "./franchise";
+describe("franchise pipeline", () => {
+  it("moves one step at a time and can fall out, but approval is not a drag-and-drop move", () => {
+    expect(canMove("enquiry", "qualified")).toBe(true); expect(canMove("enquiry", "proposal")).toBe(false);
+    expect(canMove("review", "approved")).toBe(false); expect(canMove("rejected", "enquiry")).toBe(false); expect(canMove("meeting", "withdrawn")).toBe(true);
+  });
+  it("lists what blocks approval", () => {
+    expect(approvalBlockers("meeting", [], false)).toEqual(["The application must be in review", "Reserve a territory first", "Add the qualification and document checks"]);
+    const checks = [{ kind: "document" as const, status: "verified" as const }, { kind: "qualification" as const, status: "received" as const }, { kind: "document" as const, status: "rejected" as const }];
+    expect(approvalBlockers("review", checks, true)).toEqual(["1 check not yet verified", "1 check rejected"]);
+    expect(approvalBlockers("review", [{ kind: "document", status: "verified" }], true)).toEqual([]);
+  });
+  it("validates agreement dates and reminders", () => {
+    expect(agreementProblem({ start: "2026-01-01", end: "2025-01-01", reminderDays: 90 })).toMatch(/after it starts/);
+    expect(agreementProblem({ start: "2026-01-01", end: "2031-01-01", reminderDays: 3 })).toMatch(/Renewal reminders/);
+    expect(agreementProblem({ start: "2026-01-01", end: "2031-01-01", reminderDays: 90 })).toBeNull();
+  });
+  it("computes renewal windows and the next term's start", () => {
+    expect(daysUntil("2026-12-31", "2026-11-05")).toBe(56); expect(renewalDue("2026-12-31", 90, "2026-11-05")).toBe(true); expect(renewalDue("2027-12-31", 90, "2026-11-05")).toBe(false); expect(renewalDue("2026-10-01", 90, "2026-11-05")).toBe(false);
+    expect(nextStart("2026-12-31")).toBe("2027-01-01"); expect(nextStart("2028-02-28")).toBe("2028-02-29");
+  });
+});

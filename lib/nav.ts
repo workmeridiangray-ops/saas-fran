@@ -17,6 +17,7 @@ export const NAV: NavGroup[] = [
   { label: "Network", items: [
     { label: "Branches", href: "/branches", resource: "branches", icon: "store" },
     { label: "Organisation", href: "/organisation", resource: "organisation", icon: "tree" },
+    { label: "Franchise", href: "/franchise", resource: "franchise", module: "franchise", icon: "handshake" },
     { label: "Opening projects", href: "/projects", resource: "projects", module: "projects", icon: "rocket" },
     { label: "Assets & licences", href: "/assets", resource: "assets", module: "assets", icon: "wrench" },
   ]},

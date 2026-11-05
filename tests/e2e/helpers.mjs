@@ -25,9 +25,11 @@ export async function open() {
 export async function newUser(browser) { const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } }); return { ctx, page: await ctx.newPage() }; }
 
 let pass = 0; const failures = [];
-export async function step(name, fn) {
+export async function step(name, fn, page) {
   try { await fn(); pass++; console.log("  ok   " + name); }
-  catch (e) { failures.push(name); const m = String(e.message).split("\n").filter(Boolean).slice(0, 14).join("\n       "); console.log("  FAIL " + name + "\n       " + m); }
+  catch (e) {
+    if (page) { try { await page.screenshot({ path: `/tmp/fail-${failures.length}.png` }); } catch {} }
+    if (page) try { console.log("       [page] " + page.url() + " :: " + (await page.locator("main").innerText({ timeout: 2000 })).replace(/\s+/g, " ").slice(0, 260)); } catch {} failures.push(name); const m = String(e.message).split("\n").filter(Boolean).slice(0, 14).join("\n       "); console.log("  FAIL " + name + "\n       " + m); }
 }
 export function expect(cond, msg) { if (!cond) throw new Error(msg); }
 export const summary = () => { console.log(`\n${pass} passed, ${failures.length} failed`); return failures.length; };

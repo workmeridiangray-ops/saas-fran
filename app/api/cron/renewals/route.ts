@@ -14,6 +14,7 @@ export async function POST(req: Request) {
   const out = await asService(async (db) => ({
     renewals: (await db.one<{ n: number }>("select app.run_renewals() n"))!.n,
     escalations: (await db.one<{ n: number }>("select app.run_escalations() n"))!.n,
+    franchise: (await db.one<{ n: number }>("select app.run_franchise_housekeeping() n"))!.n,
     purged: (await db.one<{ n: number }>("select app.purge_closed_companies($1) n", [days]))!.n,   // closed companies past their retention period
   }));
   return NextResponse.json(out);
