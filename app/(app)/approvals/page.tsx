@@ -50,10 +50,11 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
         where r.company_id = $1 and ($2 = 'inbox' and r.status = 'pending' or $2 = 'mine' and r.requester_id = $3 or $2 = 'decided' and r.status <> 'pending')
         order by r.created_at desc limit 100`, [ctx.companyId, tab, ctx.user.id]);
     const sel = list.find((r) => r.id === open) ?? list[0] ?? null;
-    if (!sel) return { list, sel: null, history: [], lines: [] };
+    if (!sel) return { list, sel: null, history: [], lines: [], solo: false };
     const history = await db.q<{ step: number; outcome: string; reason: string | null; decided_at: string; who: string | null }>("select d.step, d.outcome, d.reason, d.decided_at, coalesce(nullif(p.display_name,''), p.email) who from approval_decisions d left join profiles p on p.id = d.decided_by where d.request_id = $1 order by d.decided_at", [sel.id]);
     const lines = sel.kind === "purchase" ? await db.q<{ name: string; qty: string; unit_price_minor: string }>("select i.name, l.qty, l.unit_price_minor from requisition_lines l join catalog_items i on i.id = l.item_id where l.requisition_id = $1", [sel.subject_id]) : [];
-    return { list, sel, history, lines };
+    const solo = (await db.one<{ s: boolean }>("select app.sole_member($1) s", [ctx.companyId]))!.s;   // same rule the database applies to self-approval
+    return { list, sel, history, lines, solo };
   });
   const sel = d.sel;
   const tabLink = (k: string, l: string) => <Link key={k} href={`/approvals?tab=${k}`} aria-current={tab === k ? "page" : undefined} className={`inline-flex min-h-touch items-center rounded-md border px-2 text-sm ${tab === k ? "border-brand bg-brand-soft font-medium" : "border-line bg-surface hover:bg-sunken"}`}>{l}</Link>;
@@ -81,7 +82,7 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
             </Panel>
             <Attachments ctx={ctx} table="approval_requests" id={sel.id} back={`/approvals?tab=${tab}&open=${sel.id}`} canUpload={sel.status === "pending"} title="Supporting evidence" />
             <Panel title="Previous decisions">{d.history.length === 0 ? <p className="text-sm text-muted">No decisions yet.</p> : <ol className="space-y-1">{d.history.map((h, i) => <li key={i} className="text-sm"><strong className="font-medium">{h.who ?? "—"}</strong>: {h.outcome} step {h.step + 1}{h.reason ? ` — “${h.reason}”` : ""} <span className="text-xs text-muted">{fmtDateTime(h.decided_at, ctx.company.timezone)}</span></li>)}</ol>}</Panel>
-            {sel.status === "pending" && (sel.requester_id === ctx.user.id ? (
+            {sel.status === "pending" && (sel.requester_id === ctx.user.id && !d.solo ? (
               <Panel title="Your request"><p className="mb-1 text-sm text-muted">Waiting for {sel.steps[sel.current_step]?.label ?? "an approver"}.</p><form action={cancelRequest}><input type="hidden" name="id" value={sel.id} /><SubmitButton variant="secondary" pending="Withdrawing…">Withdraw request</SubmitButton></form></Panel>
             ) : ctx.has("approve", "approvals") ? (
               <Panel title={`Your decision · step ${sel.current_step + 1} of ${sel.steps.length}`}><form className="space-y-2"><input type="hidden" name="id" value={sel.id} />

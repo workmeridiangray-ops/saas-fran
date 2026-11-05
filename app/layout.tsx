@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "@fontsource-variable/inter";
 import "./globals.css";
+import { Remember } from "@/components/ui/Remember";
 
 export const metadata: Metadata = {
   title: { default: "Network Manager", template: "%s · Network Manager" },
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen font-sans text-base antialiased">{children}</body>
+      <body className="min-h-screen font-sans text-base antialiased">{children}<Remember /></body>
     </html>
   );
 }

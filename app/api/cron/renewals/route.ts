@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { asService } from "@/lib/db";
+import { deliverDue } from "@/lib/integrations/deliver";
 
 export const dynamic = "force-dynamic";
 /** Renews subscriptions, issues invoices, suspends non-payers, and deletes companies past their retention period.
@@ -17,5 +18,5 @@ export async function POST(req: Request) {
     franchise: (await db.one<{ n: number }>("select app.run_franchise_housekeeping() n"))!.n,
     purged: (await db.one<{ n: number }>("select app.purge_closed_companies($1) n", [days]))!.n,   // closed companies past their retention period
   }));
-  return NextResponse.json(out);
+  return NextResponse.json({ ...out, webhooks: await deliverDue(100) });
 }

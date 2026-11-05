@@ -37,6 +37,7 @@ await step("duplicate branch code gives a clear error and saves nothing", async 
   await page.goto(BASE + "/branches/new"); await page.getByLabel("Branch name").fill("Another"); await page.getByLabel("Code").fill("DT1");
   await page.getByRole("button", { name: "Add branch" }).click(); await page.waitForURL(/err=/);
   await page.getByText("already exists").waitFor({ timeout: 5000 });
+  await page.waitForFunction(() => document.querySelector('input[name="name"]')?.value === "Another" && document.querySelector('input[name="code"]')?.value === "DT1", null, { timeout: 5000 }).catch(() => { throw new Error("what was typed was lost after the error"); });
 });
 await step("no browser errors", async () => expect(errors.length === 0, errors.join(" | ")));
 await browser.close(); process.exit(summary() ? 1 : 0);

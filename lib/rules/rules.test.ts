@@ -375,3 +375,28 @@ describe("franchise pipeline", () => {
     expect(nextStart("2026-12-31")).toBe("2027-01-01"); expect(nextStart("2028-02-28")).toBe("2028-02-29");
   });
 });
+
+import { hashKey, isPrivateAddress, keyMatches, newApiKey, nextDelay, parseApiKey, signPayload, urlProblem, verifySignature } from "../integrations/security";
+describe("integration security", () => {
+  it("signs and verifies payloads, and rejects tampering, wrong secrets and stale timestamps", () => {
+    const sig = signPayload("s3cret", '{"a":1}', 1_700_000_000);
+    expect(verifySignature("s3cret", '{"a":1}', sig, 1_700_000_100)).toBe(true);
+    expect(verifySignature("s3cret", '{"a":2}', sig, 1_700_000_100)).toBe(false);
+    expect(verifySignature("other", '{"a":1}', sig, 1_700_000_100)).toBe(false);
+    expect(verifySignature("s3cret", '{"a":1}', sig, 1_700_001_000)).toBe(false);
+    expect(verifySignature("s3cret", '{"a":1}', "garbage")).toBe(false);
+  });
+  it("generates API keys that can be found by prefix and verified by hash, never stored in the clear", () => {
+    const k = newApiKey(); expect(parseApiKey(k.raw)?.prefix).toBe(k.prefix); expect(k.hash).toBe(hashKey(k.raw)); expect(k.hash).not.toContain(k.raw);
+    expect(keyMatches(k.raw, k.hash)).toBe(true); expect(keyMatches(k.raw + "x", k.hash)).toBe(false); expect(parseApiKey("nope")).toBeNull(); expect(newApiKey().raw).not.toBe(k.raw);
+  });
+  it("blocks private, loopback, metadata and malformed targets", () => {
+    for (const ip of ["127.0.0.1", "10.0.0.5", "172.16.3.4", "172.31.255.1", "192.168.1.1", "169.254.169.254", "100.64.0.1", "0.0.0.0", "224.0.0.1", "::1", "fe80::1", "fd00::1", "::ffff:10.0.0.1", "not-an-ip"]) expect(isPrivateAddress(ip), ip).toBe(true);
+    for (const ip of ["8.8.8.8", "1.1.1.1", "172.32.0.1", "2606:4700:4700::1111"]) expect(isPrivateAddress(ip), ip).toBe(false);
+  });
+  it("accepts only https addresses without credentials", () => {
+    expect(urlProblem("https://hooks.example.com/x")).toBeNull();
+    expect(urlProblem("http://hooks.example.com/x")).toMatch(/https/); expect(urlProblem("https://user:pw@example.com")).toMatch(/username/); expect(urlProblem("https://localhost/x")).toMatch(/can't be reached/); expect(urlProblem("ftp://x.com")).toMatch(/https/); expect(urlProblem("nonsense")).toMatch(/full web address/);
+  });
+  it("backs off between retries", () => { expect([1, 2, 3, 4, 5].map(nextDelay)).toEqual([60, 300, 1800, 7200, 43200]); expect(nextDelay(9)).toBe(43200); });
+});

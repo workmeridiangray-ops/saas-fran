@@ -31,6 +31,7 @@ export const NAV: NavGroup[] = [
   { label: "Reports", items: [{ label: "Reports & exports", href: "/reports", resource: "reports", icon: "chart" }]},
   { label: "Settings", items: [
     { label: "Plan & billing", href: "/billing", resource: "billing", icon: "card" },
+    { label: "Integrations", href: "/integrations", resource: "integrations", module: "integrations", icon: "plug" },
     { label: "Audit log", href: "/audit", resource: "organisation", icon: "shield" },
   ]},
 ];

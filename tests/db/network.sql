@@ -85,3 +85,33 @@ select t.denied('a terminated agreement is final', $$update agreements set statu
 select t.as_user(:mgr);
 select t.denied('a branch manager cannot approve applicants', $$select approve_applicant('55555555-7777-0000-0000-000000000003')$$);
 select 'franchise tests passed' as result;
+
+-- ============================================================ webhooks and API keys
+select t.as_user(:own);
+select create_company('Hooks Co', 'hooks-co') as hcid \gset
+select create_company('Other Co', 'other-co') as ocid \gset
+insert into webhook_endpoints(id, company_id, url, secret, events, created_by) values
+  ('55555555-aaaa-0000-0000-000000000001', :'hcid', 'https://a.example/hook', 'whsec_a', '{ticket.created}', :own),
+  ('55555555-aaaa-0000-0000-000000000002', :'hcid', 'https://b.example/hook', 'whsec_b', '{branch.created}', :own),
+  ('55555555-aaaa-0000-0000-000000000003', :'ocid', 'https://c.example/hook', 'whsec_c', '{ticket.created}', :own);
+select t.denied('a webhook secret can never be read back', $$select secret from webhook_endpoints$$);
+select t.check('but the endpoint list is readable without it', (select count(*) from webhook_endpoints) = 3);
+insert into tickets(company_id, number, title, created_by) values (:'hcid', 'H-1', 'Printer jam', :own);
+select t.check('an event goes only to endpoints subscribed to it, in the same company', (select count(*) from webhook_deliveries where event = 'ticket.created') = 1 and (select endpoint_id from webhook_deliveries where event = 'ticket.created') = '55555555-aaaa-0000-0000-000000000001');
+select t.check('the payload carries identifiers, status and a short title, never the description', (select payload->'data'->>'title' from webhook_deliveries where event = 'ticket.created') = 'Printer jam' and not (select (payload->'data') ? 'body' from webhook_deliveries where event = 'ticket.created'));
+update webhook_endpoints set active = false where id = '55555555-aaaa-0000-0000-000000000001';
+insert into tickets(company_id, number, title, created_by) values (:'hcid', 'H-2', 'Another', :own);
+select t.check('a switched-off endpoint gets nothing', (select count(*) from webhook_deliveries where event = 'ticket.created') = 1);
+insert into api_keys(company_id, name, prefix, key_hash, scopes, created_by) values (:'hcid', 'Reporting', 'nmk_abcd1234', 'hash', '{read:branches}', :own);
+select t.denied('an API key hash can never be read back', $$select key_hash from api_keys$$);
+select t.denied('an unknown scope is refused', $$insert into api_keys(company_id, name, prefix, key_hash, scopes, created_by) select company_id, 'x', 'nmk_zzzz9999', 'h', '{write:everything}', created_by from api_keys limit 1$$);
+select t.as_user(:mgr);
+select t.check('someone without integrations access sees no keys or hooks', (select count(*) from api_keys) = 0 and (select count(*) from webhook_endpoints) = 0);
+select 'integration tests passed' as result;
+
+select t.as_user(:own);
+select public.send_test_event('55555555-aaaa-0000-0000-000000000002');
+select t.check('send_test_event queues a ping for your own endpoint', (select count(*) from webhook_deliveries where event = 'ping') = 1);
+select t.denied('customers cannot insert deliveries directly', $$insert into webhook_deliveries(company_id, endpoint_id, event, payload) select company_id, id, 'x', '{}' from webhook_endpoints limit 1$$);
+select t.as_user(:mgr);
+select t.denied('without integrations access you cannot send test events', $$select public.send_test_event('55555555-aaaa-0000-0000-000000000002')$$);
